@@ -10,7 +10,20 @@
 浏览器打开 [`replica/index.html`](./replica/index.html)。
 
 登录页原参数：`sizePx: 64`、`color: "black"`、`shape: "blob"`。  
-`pjn(n) = n%2===0 ? idle : cSe[(n-1)/2]`，间隔 `1200ms`。
+`pjn(n) = n%2===0 ? idle : cSe[(n-1)/2]`，间隔 `1200ms`。  
+playground 有意从 curious 起播；点「登录轮换」才按 `pjn(0)=idle` 重来。大预览默认开指针跟随，源码默认关。
+
+## 项目结构
+
+| 路径 | 内容 |
+|---|---|
+| `replica/index.html` | L1 舞台 |
+| `replica/src/` | 拆开的引擎：character / pose / tricks / eyes / fx / math / tables |
+| `replica/geometry-data.js` | `u3` 25 眼、`Jo` 18 身形、`snt` 11 色 |
+| `replica/grok-blob-idle.svg` | 静态 blob + idle `u3[0]` |
+| `extracted/` | 从主包抽出的学习参考片段 |
+| `extract-asar.js` | 解包辅助脚本（按需使用） |
+| `assets/icon.iconset/`、`assets/app-icon-256.png` | Dock / 应用内静态商标（不是角色引擎） |
 
 ## 免责声明
 
