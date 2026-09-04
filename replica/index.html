@@ -2,7 +2,10 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=overlays-content" />
+<script>
+  document.documentElement.style.setProperty("--pet-stable-height", `${window.innerHeight}px`);
+</script>
 <link rel="icon" href="data:," />
 <title>互动桌宠预览</title>
 <link rel="stylesheet" href="chat.css" />
@@ -19,8 +22,9 @@
   }
   * { box-sizing: border-box; }
   html, body {
+    height: var(--pet-stable-height, 100vh);
     margin: 0;
-    min-height: 100%;
+    min-height: var(--pet-stable-height, 100vh);
     background:
       radial-gradient(circle at 50% 42%, rgba(232, 215, 164, 0.14), transparent 34%),
       linear-gradient(145deg, #151513 0%, #24211b 52%, #11110f 100%);
@@ -29,7 +33,8 @@
   body {
     font: 14px/1.5 "SF Pro Text", "PingFang SC", "Hiragino Sans GB", sans-serif;
     letter-spacing: 0.01em;
-    min-height: 100dvh;
+    height: var(--pet-stable-height, 100vh);
+    min-height: var(--pet-stable-height, 100vh);
     overflow: hidden;
   }
   header {
@@ -47,7 +52,8 @@
     align-items: center;
     display: grid;
     justify-items: center;
-    min-height: 100dvh;
+    height: var(--pet-stable-height, 100vh);
+    min-height: var(--pet-stable-height, 100vh);
     padding: clamp(20px, 5vw, 64px);
     position: relative;
   }
@@ -329,14 +335,16 @@
         </section>
       </aside>
     </div>
-    <div class="pet-bubble" id="pet-bubble" role="status" aria-live="polite" data-state="ready">
-      <span class="pet-bubble__status" aria-hidden="true"></span>
-      <div class="pet-bubble__copy">
-        <small id="pet-bubble-label">桌宠</small>
-        <p id="pet-bubble-text">你好呀，我是住在这里的机器人桌宠。你可以给我取名，也可以告诉我该怎么称呼你。</p>
+    <div class="pet-dialog-stack">
+      <div class="pet-bubble" id="pet-bubble" role="status" aria-live="polite" data-state="ready">
+        <span class="pet-bubble__status" aria-hidden="true"></span>
+        <div class="pet-bubble__copy">
+          <small id="pet-bubble-label">桌宠</small>
+          <p id="pet-bubble-text">你好呀，我是住在这里的机器人桌宠。你可以给我取名，也可以告诉我该怎么称呼你。</p>
+        </div>
       </div>
+      <div class="pet-user-echo" id="pet-user-echo" aria-live="polite" hidden></div>
     </div>
-    <div class="pet-user-echo" id="pet-user-echo" aria-live="polite" hidden></div>
     <form class="pet-composer" id="pet-composer" data-drag="false">
       <div class="pet-image-preview" id="pet-image-preview" hidden>
         <img id="pet-image-preview-image" alt="待发送图片预览" />
@@ -374,6 +382,7 @@
 <script src="src/fx.js"></script>
 <script src="src/eyes.js"></script>
 <script src="src/character.js"></script>
+<script src="src/viewport.js"></script>
 <script src="src/sync.js"></script>
 <script>
   const readout = {

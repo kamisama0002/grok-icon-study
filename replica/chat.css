@@ -1,8 +1,11 @@
 .pet-chat {
-  inset: 0;
+  height: var(--pet-stable-height, 100vh);
+  left: 0;
   margin: 0;
   pointer-events: none;
-  position: fixed;
+  position: absolute;
+  top: 0;
+  width: 100%;
   z-index: 20;
 }
 
@@ -356,6 +359,18 @@
   padding-top: 11px;
 }
 
+.pet-dialog-stack {
+  display: grid;
+  gap: 12px;
+  left: 50%;
+  max-width: min(430px, calc(100vw - 32px));
+  pointer-events: none;
+  position: absolute;
+  top: max(18px, calc(50% - 305px));
+  transform: translateX(-50%);
+  width: 100%;
+}
+
 .pet-bubble {
   align-items: flex-start;
   background: rgba(243, 239, 230, 0.97);
@@ -365,14 +380,11 @@
   color: #161513;
   display: flex;
   gap: 11px;
-  left: 50%;
-  max-width: min(430px, calc(100vw - 32px));
-  min-width: min(320px, calc(100vw - 32px));
+  min-width: min(320px, 100%);
   padding: 15px 18px 16px;
   pointer-events: auto;
-  position: absolute;
-  top: max(18px, calc(50% - 305px));
-  transform: translateX(-50%);
+  position: relative;
+  width: 100%;
 }
 
 .pet-bubble::after {
@@ -438,14 +450,12 @@
   border-radius: 16px;
   color: #ece7dc;
   font-size: 12px;
-  left: 50%;
-  max-width: min(360px, calc(100vw - 36px));
+  justify-self: center;
+  max-width: min(360px, calc(100% - 4px));
   overflow: hidden;
   padding: 9px 12px;
   pointer-events: auto;
-  position: absolute;
-  top: max(112px, calc(50% - 214px));
-  transform: translateX(-50%);
+  position: relative;
   white-space: nowrap;
 }
 
@@ -457,7 +467,7 @@
   background: rgba(243, 239, 230, 0.97);
   border: 1px solid rgba(22, 21, 19, 0.2);
   border-radius: 24px;
-  bottom: max(20px, env(safe-area-inset-bottom));
+  bottom: calc(max(20px, env(safe-area-inset-bottom)) + var(--pet-keyboard-inset, 0px));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
   color: #161513;
   left: 50%;
@@ -466,7 +476,7 @@
   pointer-events: auto;
   position: absolute;
   transform: translateX(-50%);
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition: border-color 160ms ease, bottom 180ms ease, box-shadow 160ms ease, transform 160ms ease;
   width: 100%;
 }
 
@@ -626,10 +636,11 @@
 }
 
 @media (max-height: 700px) {
-  .disk { width: min(44vh, 280px); }
-  .pet-bubble { top: 14px; }
-  .pet-user-echo { top: 100px; }
-  .pet-composer { bottom: 12px; }
+  .disk { width: min(72vw, 280px); }
+  .pet-dialog-stack { top: 14px; }
+  .pet-composer {
+    bottom: calc(12px + var(--pet-keyboard-inset, 0px));
+  }
 }
 
 @media (max-width: 520px) {
@@ -657,6 +668,11 @@
     min-height: 38px;
   }
 
+  .pet-dialog-stack {
+    max-width: none;
+    width: calc(100vw - 28px);
+  }
+
   .pet-bubble {
     border-radius: 20px;
     min-width: 0;
@@ -666,7 +682,7 @@
 
   .pet-composer {
     border-radius: 20px;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--pet-keyboard-inset, 0px));
     width: calc(100vw - 20px);
   }
 
