@@ -1,0 +1,37 @@
+[Unit]
+Description=Private Grok pet preview and Hermes bridge
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+Type=simple
+User=nobody
+Group=nogroup
+WorkingDirectory=/opt/grok-icon-study
+EnvironmentFile=/etc/grok-pet-bridge.env
+Environment=HOST=127.0.0.1
+Environment=PORT=9120
+Environment=DESIGNER_ROOT=/opt/grok-icon-study
+Environment=PREVIEW_ROOT=/opt/grok-icon-study-preview
+Environment=DESIGNER_CLIENT_PORT=19091
+Environment=PET_PROFILE_PATH=/var/lib/grok-pet/profile.json
+ExecStart=/usr/local/bin/node /opt/grok-icon-study/preview-server.mjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/grok-pet
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
