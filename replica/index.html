@@ -240,6 +240,7 @@
 <script src="src/fx.js"></script>
 <script src="src/eyes.js"></script>
 <script src="src/character.js"></script>
+<script src="src/sync.js"></script>
 <script>
   const readout = {
     state: document.getElementById("r-state"),
@@ -283,6 +284,7 @@
           el.setState(name, { resetEyes: false });
         });
         syncModes("hold");
+        PET_SYNC.state({ mode: "hold", state: name });
       });
       row.appendChild(b);
     });
@@ -298,6 +300,7 @@
   const bot64 = new GrokCharacter(document.getElementById("bot64"), { ...shared, sizePx: 64 });
   const bots = [bot, bot64];
   window.__bots = bots;
+  PET_SYNC.register(bots);
   // skip the first idle beat so the face is obvious on load
   bots.forEach((el) => {
     el.moodN = 1;
@@ -313,6 +316,7 @@
     b.innerHTML = `<svg viewBox="-15 -15 259 259"><path d="${shape.path}" style="fill:var(--fg)"></path></svg><span>${shape.label}</span>`;
     b.addEventListener("click", () => {
       bots.forEach((el) => el.setShape(id));
+      PET_SYNC.state({ shape: id });
       shapeRoot.querySelectorAll("button").forEach((el) => {
         el.setAttribute("aria-pressed", el === b ? "true" : "false");
       });
@@ -329,6 +333,7 @@
     b.style.background = pal.light;
     b.addEventListener("click", () => {
       bots.forEach((el) => el.setColor(id, "light"));
+      PET_SYNC.state({ color: id });
       swatchRoot.querySelectorAll("button").forEach((el) => {
         el.setAttribute("aria-pressed", el === b ? "true" : "false");
       });
@@ -340,24 +345,28 @@
   document.getElementById("mode-onboard").onclick = () => {
     bots.forEach((el) => el.setMode("onboarding"));
     syncModes("onboarding");
+    PET_SYNC.state({ mode: "onboarding", state: "idle" });
   };
   document.getElementById("mode-hold").onclick = () => {
     bots.forEach((el) => el.setMode("hold"));
     syncModes("hold");
+    PET_SYNC.state({ mode: "hold", state: bot.snapshot().state });
   };
   document.getElementById("opt-follow").onclick = () => {
     const on = document.getElementById("opt-follow").getAttribute("aria-pressed") !== "true";
     document.getElementById("opt-follow").setAttribute("aria-pressed", on ? "true" : "false");
     bots.forEach((el) => el.setFollowPointer(on));
+    PET_SYNC.state({ followPointer: on });
   };
   document.getElementById("opt-emphasis").onclick = () => {
     const on = document.getElementById("opt-emphasis").getAttribute("aria-pressed") !== "true";
     document.getElementById("opt-emphasis").setAttribute("aria-pressed", on ? "true" : "false");
     bots.forEach((el) => el.setEmphasis(on));
+    PET_SYNC.state({ emphasis: on });
   };
-  document.getElementById("act-spin").onclick = () => bots.forEach((el) => el.spinOnce(1));
-  document.getElementById("act-bounce").onclick = () => bots.forEach((el) => el.bounceOnce());
-  document.getElementById("act-burst").onclick = () => bots.forEach((el) => el.burstOnce());
+  document.getElementById("act-spin").onclick = () => PET_SYNC.action("spin");
+  document.getElementById("act-bounce").onclick = () => PET_SYNC.action("bounce");
+  document.getElementById("act-burst").onclick = () => PET_SYNC.action("burst");
 </script>
 </body>
 </html>
