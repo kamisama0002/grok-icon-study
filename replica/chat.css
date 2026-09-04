@@ -201,14 +201,6 @@
   opacity: 0.5;
 }
 
-.pet-composer__hint {
-  color: #7a7267;
-  display: block;
-  font-size: 10px;
-  line-height: 1.4;
-  margin: 4px 52px 0;
-}
-
 .pet-image-preview {
   align-items: center;
   background: #e7e1d6;
@@ -304,11 +296,6 @@
     width: calc(100vw - 20px);
   }
 
-  .pet-composer__hint {
-    margin-inline: 4px;
-    padding: 0 4px 3px;
-  }
-
   .pet-composer__send {
     padding-inline: 14px;
   }
@@ -319,4 +306,3 @@
     animation: none !important;
   }
 }
-
