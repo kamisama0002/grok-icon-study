@@ -23,7 +23,7 @@
   let dragDepth = 0;
 
   const allowedImages = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
-  const maxImageBytes = 5 * 1024 * 1024;
+  const optimizeAboveBytes = 4 * 1024 * 1024;
 
   function setBubble(text, state = "ready", label = "桌宠") {
     bubble.dataset.state = state;
@@ -46,26 +46,57 @@
     previewSize.textContent = "";
   }
 
-  function readImage(file) {
+  function readAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("图片读取失败"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function optimizeImage(file) {
+    if (file.size <= optimizeAboveBytes) {
+      return { dataUrl: await readAsDataUrl(file), optimized: false };
+    }
+
+    const bitmap = await createImageBitmap(file);
+    const maxSide = 2048;
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context) throw new Error("浏览器无法处理这张图片");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+
+    let quality = 0.88;
+    let dataUrl = canvas.toDataURL("image/webp", quality);
+    while (dataUrl.length > optimizeAboveBytes * 1.34 && quality > 0.52) {
+      quality -= 0.1;
+      dataUrl = canvas.toDataURL("image/webp", quality);
+    }
+    return { dataUrl, optimized: true };
+  }
+
+  async function readImage(file) {
     if (!file || !allowedImages.has(file.type)) {
       setBubble("请选择 PNG、JPG、WebP 或 GIF 图片。", "error");
       return;
     }
-    if (file.size > maxImageBytes) {
-      setBubble("图片不能超过 5 MB，换一张小一点的吧。", "error");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      image = { file, dataUrl: String(reader.result || "") };
+    setBubble("正在准备图片…", "thinking");
+    try {
+      const prepared = await optimizeImage(file);
+      image = { file, dataUrl: prepared.dataUrl };
       previewImage.src = image.dataUrl;
       previewName.textContent = file.name;
-      previewSize.textContent = formatBytes(file.size);
+      previewSize.textContent = `${formatBytes(file.size)}${prepared.optimized ? " · 已优化发送" : ""}`;
       preview.hidden = false;
       setBubble("图片准备好了，还可以补充一句想问我的话。", "ready");
-    };
-    reader.onerror = () => setBubble("这张图片读取失败了，请重新选择。", "error");
-    reader.readAsDataURL(file);
+    } catch {
+      setBubble("这张图片处理失败了，请换一种格式再试。", "error");
+    }
   }
 
   function resizeInput() {
