@@ -5,12 +5,14 @@
   const viewport = window.visualViewport;
   let stableHeight = Math.max(window.innerHeight, viewport?.height || 0);
   let orientationTimer = 0;
+  let parentLocked = false;
+  let keyboardSeen = false;
 
   function isTextInput(element) {
     return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
   }
 
-  function update({ allowHeightRefresh = false } = {}) {
+  function update() {
     const active = document.activeElement;
     const editing = isTextInput(active);
     const visualHeight = viewport?.height || window.innerHeight;
@@ -20,9 +22,6 @@
       : 0;
     const keyboardOpen = editing && keyboardInset > 96;
 
-    if (allowHeightRefresh && !keyboardOpen && window.innerHeight > 320) {
-      stableHeight = Math.max(window.innerHeight, visualHeight + visualTop);
-    }
     root.style.setProperty("--pet-stable-height", `${Math.round(stableHeight)}px`);
     root.style.setProperty("--pet-keyboard-inset", `${keyboardInset}px`);
     root.dataset.keyboard = keyboardOpen ? "open" : "closed";
@@ -40,22 +39,37 @@
 
   document.addEventListener("focusin", (event) => {
     if (!isTextInput(event.target)) return;
+    keyboardSeen = true;
     requestAnimationFrame(() => update());
   });
   document.addEventListener("focusout", () => {
     update();
-    window.setTimeout(() => update({ allowHeightRefresh: true }), 420);
   });
   viewport?.addEventListener("resize", () => update());
   viewport?.addEventListener("scroll", () => update());
-  window.addEventListener("resize", () => update({ allowHeightRefresh: !isTextInput(document.activeElement) }));
+  window.addEventListener("resize", () => {
+    if (!parentLocked && !keyboardSeen && !isTextInput(document.activeElement) && window.innerHeight > 320) {
+      stableHeight = Math.max(window.innerHeight, viewport?.height || 0);
+    }
+    update();
+  });
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin || event.data?.type !== "pet-viewport-lock") return;
+    const height = Number(event.data.height);
+    if (!Number.isFinite(height) || height < 320 || height > 3000) return;
+    parentLocked = true;
+    stableHeight = Math.round(height);
+    update();
+  });
   window.addEventListener("orientationchange", () => {
     window.clearTimeout(orientationTimer);
     orientationTimer = window.setTimeout(() => {
+      parentLocked = false;
+      keyboardSeen = false;
       stableHeight = Math.max(window.innerHeight, viewport?.height || 0);
-      update({ allowHeightRefresh: true });
+      update();
     }, 320);
   });
 
-  update({ allowHeightRefresh: true });
+  update();
 })();

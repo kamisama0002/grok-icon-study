@@ -680,6 +680,7 @@
   .pet-memory-add input,
   .pet-memory-add select {
     font-size: 16px;
+    touch-action: manipulation;
   }
 
   .pet-bubble {

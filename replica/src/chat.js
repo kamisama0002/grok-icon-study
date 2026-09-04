@@ -69,6 +69,14 @@
     { text: "快看明白了，再等我一下。", expression: "thinking" },
     { text: "我正在组织怎么告诉你。", expression: "working" },
   ];
+  const defaultGreetings = [
+    "你来啦。今天想聊点什么？",
+    "我在这里，想说什么都可以。",
+    "刚刚还在发呆，正好等到你。",
+    "欢迎回来。今天要我陪你做点什么？",
+    "见到你啦，今天过得怎么样？",
+    "要不要和我说说刚刚发生的事？",
+  ];
 
   function setBubble(text, state = "ready", label = petLabel) {
     bubble.dataset.state = state;
@@ -135,11 +143,16 @@
     profileNotes.value = next.notes || "";
     petLabel = next.petName || "桌宠";
     bubbleLabel.textContent = petLabel;
-    if (welcome && next.petName && userEcho.hidden && !busy) {
-      const greeting = next.userAddress
-        ? `${next.userAddress}，欢迎回来，我是${next.petName}。今天想聊点什么？`
-        : `你好呀，我是${next.petName}。今天想聊点什么？`;
-      setBubble(greeting, "ready", petLabel);
+    if (welcome && userEcho.hidden && !busy) {
+      if (next.petName) {
+        const greeting = next.userAddress
+          ? `${next.userAddress}，欢迎回来，我是${next.petName}。今天想聊点什么？`
+          : `欢迎回来，我是${next.petName}。今天想聊点什么？`;
+        setBubble(greeting, "ready", petLabel);
+      } else {
+        const greeting = defaultGreetings[Math.floor(Math.random() * defaultGreetings.length)];
+        setBubble(greeting, "ready", petLabel);
+      }
     }
     if (syncAppearance) {
       const patch = { mode: "hold" };
