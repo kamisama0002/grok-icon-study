@@ -25,7 +25,7 @@
   const allowedImages = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
   const maxImageBytes = 5 * 1024 * 1024;
 
-  function setBubble(text, state = "ready", label = "桌宠 · Demo") {
+  function setBubble(text, state = "ready", label = "桌宠") {
     bubble.dataset.state = state;
     bubbleLabel.textContent = label;
     bubbleText.textContent = text;
@@ -73,13 +73,6 @@
     input.style.height = `${Math.min(input.scrollHeight, 112)}px`;
   }
 
-  function mockReply(text, hasImage) {
-    if (hasImage) return "图片收到啦。接入 Hermes 后，我会认真看看它，再和你聊。";
-    if (/你好|嗨|hello|hi/i.test(text)) return "你好呀，很高兴见到你。今天想聊点什么？";
-    if (/晚安|睡觉/.test(text)) return "晚安。今天已经很努力啦，剩下的事情明天再慢慢做。";
-    return "我听见啦。接入 Hermes 后，我会在这里认真回复你。";
-  }
-
   function setBusy(nextBusy) {
     busy = nextBusy;
     input.disabled = nextBusy;
@@ -115,16 +108,33 @@
     setBubble("让我想一想…", "thinking");
     g.PET_SYNC?.state({ mode: "hold", state: "thinking", emphasis: true });
 
-    await new Promise((resolve) => setTimeout(resolve, 720));
-    setBubble(mockReply(text, hasImage), "ready");
-    g.PET_SYNC?.state({ mode: "hold", state: "happy", emphasis: false });
-    g.PET_SYNC?.action("bounce");
-    input.value = "";
-    resizeInput();
-    clearImage();
-    setBusy(false);
-    input.focus();
-    returnToIdle();
+    try {
+      const response = await fetch("/api/pet/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, image: image?.dataUrl || null }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok || typeof result.reply !== "string") {
+        throw new Error(result.error || "暂时没有收到回复，请稍后再试");
+      }
+
+      const allowedEmotions = new Set(["idle", "happy", "curious", "proud", "sad"]);
+      const emotion = allowedEmotions.has(result.emotion) ? result.emotion : "happy";
+      setBubble(result.reply, "ready");
+      g.PET_SYNC?.state({ mode: "hold", state: emotion, emphasis: false });
+      if (emotion === "happy" || emotion === "proud") g.PET_SYNC?.action("bounce");
+      input.value = "";
+      resizeInput();
+      clearImage();
+      returnToIdle();
+    } catch (error) {
+      setBubble(error instanceof Error ? error.message : "暂时没有收到回复，请稍后再试", "error");
+      g.PET_SYNC?.state({ mode: "hold", state: "confused", emphasis: false });
+    } finally {
+      setBusy(false);
+      input.focus();
+    }
   }
 
   attachButton.addEventListener("click", () => fileInput.click());
