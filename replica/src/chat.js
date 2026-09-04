@@ -60,7 +60,7 @@
       image = { file, dataUrl: String(reader.result || "") };
       previewImage.src = image.dataUrl;
       previewName.textContent = file.name;
-      previewSize.textContent = `${formatBytes(file.size)} · 仅本地预览`;
+      previewSize.textContent = formatBytes(file.size);
       preview.hidden = false;
       setBubble("图片准备好了，还可以补充一句想问我的话。", "ready");
     };
