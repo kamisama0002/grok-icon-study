@@ -38,6 +38,7 @@
   let image = null;
   let busy = false;
   let idleTimer = null;
+  let waitingTimer = null;
   let dragDepth = 0;
   let petLabel = "桌宠";
   let historyEntries = [];
@@ -54,6 +55,20 @@
   const allowedShapes = new Set(Object.keys(g.GROK_GEO?.shapes || {}));
   const allowedColors = new Set(Object.keys(g.GROK_GEO?.palette || {}));
   const allowedActions = new Set(["spin", "bounce", "burst"]);
+  const textWaitingMoments = [
+    { text: "我听见啦，先让我接住这句话。", expression: "listening" },
+    { text: "这个有点意思，我正在琢磨。", expression: "curious" },
+    { text: "我正在把想法慢慢整理好。", expression: "working" },
+    { text: "快好了，再等我一小会儿。", expression: "thinking" },
+    { text: "先别走，我马上就回来。", expression: "playful" },
+  ];
+  const imageWaitingMoments = [
+    { text: "图片收到，我先仔细看看。", expression: "receiving" },
+    { text: "我在观察里面的小细节。", expression: "curious" },
+    { text: "我再找找画面里的线索。", expression: "searching" },
+    { text: "快看明白了，再等我一下。", expression: "thinking" },
+    { text: "我正在组织怎么告诉你。", expression: "working" },
+  ];
 
   function setBubble(text, state = "ready", label = petLabel) {
     bubble.dataset.state = state;
@@ -345,7 +360,30 @@
     input.disabled = nextBusy;
     attachButton.disabled = nextBusy;
     sendButton.disabled = nextBusy;
-    sendButton.textContent = nextBusy ? "思考中" : "发送";
+    sendButton.textContent = nextBusy ? "回应中" : "发送";
+  }
+
+  function stopWaiting() {
+    if (waitingTimer !== null) window.clearInterval(waitingTimer);
+    waitingTimer = null;
+  }
+
+  function startWaiting(hasImage) {
+    stopWaiting();
+    const moments = hasImage ? imageWaitingMoments : textWaitingMoments;
+    let index = Math.floor(Math.random() * moments.length);
+    const showMoment = () => {
+      const moment = moments[index % moments.length];
+      index += 1;
+      setBubble(moment.text, "thinking");
+      g.PET_SYNC?.state({
+        mode: "hold",
+        state: moment.expression,
+        emphasis: moment.expression === "thinking",
+      });
+    };
+    showMoment();
+    waitingTimer = window.setInterval(showMoment, 2400);
   }
 
   function returnToIdle(delay = 2800) {
@@ -373,8 +411,7 @@
       : `你：${text}`;
     userEcho.hidden = false;
     setBusy(true);
-    setBubble("让我想一想…", "thinking");
-    g.PET_SYNC?.state({ mode: "hold", state: "thinking", emphasis: true });
+    startWaiting(hasImage);
 
     try {
       const response = await fetch(`${apiRoot}/pet/chat`, {
@@ -386,6 +423,7 @@
       if (!response.ok || !result.ok || typeof result.reply !== "string") {
         throw new Error(result.error || "暂时没有收到回复，请稍后再试");
       }
+      stopWaiting();
 
       const control = result.control && typeof result.control === "object" ? result.control : {};
       const expression = allowedExpressions.has(control.expression)
@@ -416,9 +454,11 @@
       addHistory("assistant", result.reply);
       returnToIdle(control.expression ? 6500 : 2800);
     } catch (error) {
+      stopWaiting();
       setBubble(error instanceof Error ? error.message : "暂时没有收到回复，请稍后再试", "error");
       g.PET_SYNC?.state({ mode: "hold", state: "confused", emphasis: false });
     } finally {
+      stopWaiting();
       setBusy(false);
       input.focus();
     }
