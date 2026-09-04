@@ -48,6 +48,12 @@
   const apiRoot = location.pathname.startsWith("/experiments/icon-lab")
     ? "/experiments/icon-lab/api"
     : "/api";
+  const allowedExpressions = new Set(
+    (g.GROK_META?.groups || []).flatMap((group) => group.states || []),
+  );
+  const allowedShapes = new Set(Object.keys(g.GROK_GEO?.shapes || {}));
+  const allowedColors = new Set(Object.keys(g.GROK_GEO?.palette || {}));
+  const allowedActions = new Set(["spin", "bounce", "burst"]);
 
   function setBubble(text, state = "ready", label = petLabel) {
     bubble.dataset.state = state;
@@ -106,7 +112,7 @@
     renderHistory();
   }
 
-  function applyProfile(profile, { welcome = false } = {}) {
+  function applyProfile(profile, { welcome = false, syncAppearance = true } = {}) {
     const next = profile && typeof profile === "object" ? profile : {};
     profileName.value = next.petName || "";
     profileAddress.value = next.userAddress || "";
@@ -119,6 +125,14 @@
         ? `${next.userAddress}，欢迎回来，我是${next.petName}。今天想聊点什么？`
         : `你好呀，我是${next.petName}。今天想聊点什么？`;
       setBubble(greeting, "ready", petLabel);
+    }
+    if (syncAppearance) {
+      const patch = { mode: "hold" };
+      if (allowedShapes.has(next.shape)) patch.shape = next.shape;
+      if (allowedColors.has(next.color)) patch.color = next.color;
+      if (typeof next.followPointer === "boolean") patch.followPointer = next.followPointer;
+      if (typeof next.emphasis === "boolean") patch.emphasis = next.emphasis;
+      g.PET_SYNC?.state(patch);
     }
     renderHistory();
   }
@@ -334,11 +348,11 @@
     sendButton.textContent = nextBusy ? "思考中" : "发送";
   }
 
-  function returnToIdle() {
+  function returnToIdle(delay = 2800) {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => {
-      g.PET_SYNC?.state({ mode: "hold", state: "idle", emphasis: false });
-    }, 2800);
+      g.PET_SYNC?.state({ mode: "hold", state: "idle" });
+    }, delay);
   }
 
   async function submit() {
@@ -373,18 +387,34 @@
         throw new Error(result.error || "暂时没有收到回复，请稍后再试");
       }
 
-      const allowedEmotions = new Set(["idle", "happy", "curious", "proud", "sad"]);
-      const emotion = allowedEmotions.has(result.emotion) ? result.emotion : "happy";
-      if (result.profile) applyProfile(result.profile);
+      const control = result.control && typeof result.control === "object" ? result.control : {};
+      const expression = allowedExpressions.has(control.expression)
+        ? control.expression
+        : allowedExpressions.has(result.emotion)
+          ? result.emotion
+          : "happy";
+      if (result.profile) applyProfile(result.profile, { syncAppearance: false });
       setBubble(result.reply, "ready");
-      g.PET_SYNC?.state({ mode: "hold", state: emotion, emphasis: false });
-      if (emotion === "happy" || emotion === "proud") g.PET_SYNC?.action("bounce");
+      const statePatch = {
+        mode: "hold",
+        state: expression,
+        emphasis: typeof control.emphasis === "boolean"
+          ? control.emphasis
+          : Boolean(result.profile?.emphasis),
+      };
+      if (allowedShapes.has(control.shape)) statePatch.shape = control.shape;
+      if (allowedColors.has(control.color)) statePatch.color = control.color;
+      if (typeof control.followPointer === "boolean") statePatch.followPointer = control.followPointer;
+      g.PET_SYNC?.state(statePatch);
+      const action = allowedActions.has(control.action) ? control.action : null;
+      if (action) g.PET_SYNC?.action(action);
+      else if (expression === "happy" || expression === "proud") g.PET_SYNC?.action("bounce");
       input.value = "";
       resizeInput();
       clearImage();
       addHistory("user", text || "发送了一张图片", submittedImageName);
       addHistory("assistant", result.reply);
-      returnToIdle();
+      returnToIdle(control.expression ? 6500 : 2800);
     } catch (error) {
       setBubble(error instanceof Error ? error.message : "暂时没有收到回复，请稍后再试", "error");
       g.PET_SYNC?.state({ mode: "hold", state: "confused", emphasis: false });
