@@ -11,7 +11,7 @@
 
 登录页原参数：`sizePx: 64`、`color: "black"`、`shape: "blob"`。  
 `pjn(n) = n%2===0 ? idle : cSe[(n-1)/2]`，间隔 `1200ms`。  
-playground 有意从 curious 起播；点「登录轮换」才按 `pjn(0)=idle` 重来。大预览默认开指针跟随，源码默认关。
+playground 有意从 curious 起播；点「登录轮换」才按 `pjn(0)=idle` 重来。角色默认看向正面，需要时可手动开启指针跟随。
 
 ## 项目结构
 
