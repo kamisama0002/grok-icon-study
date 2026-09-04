@@ -106,7 +106,7 @@
     renderHistory();
   }
 
-  function applyProfile(profile) {
+  function applyProfile(profile, { welcome = false } = {}) {
     const next = profile && typeof profile === "object" ? profile : {};
     profileName.value = next.petName || "";
     profileAddress.value = next.userAddress || "";
@@ -114,6 +114,12 @@
     profileNotes.value = next.notes || "";
     petLabel = next.petName || "桌宠";
     bubbleLabel.textContent = petLabel;
+    if (welcome && next.petName && userEcho.hidden && !busy) {
+      const greeting = next.userAddress
+        ? `${next.userAddress}，欢迎回来，我是${next.petName}。今天想聊点什么？`
+        : `你好呀，我是${next.petName}。今天想聊点什么？`;
+      setBubble(greeting, "ready", petLabel);
+    }
     renderHistory();
   }
 
@@ -122,7 +128,7 @@
       const response = await fetch(`${apiRoot}/pet/profile`, { cache: "no-store" });
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error();
-      applyProfile(result.profile);
+      applyProfile(result.profile, { welcome: true });
     } catch {
       personaStatus.textContent = "暂时无法读取设定";
     }
