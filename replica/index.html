@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:," />
 <title>Grok Bot 角色 · 源码复刻</title>
 <style>
   :root {
@@ -291,7 +292,14 @@
     stateRoot.appendChild(row);
   });
 
-  const shared = { mode: "hold", shape: "blob", color: "black", scheme: "light", loginWrap: true };
+  const shared = {
+    mode: "hold",
+    shape: "blob",
+    color: "black",
+    scheme: "light",
+    loginWrap: true,
+    pose: { ...GROK_META.poseHome },
+  };
   const bot = new GrokCharacter(document.getElementById("bot"), {
     ...shared,
     followPointer: false,
