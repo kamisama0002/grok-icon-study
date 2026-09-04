@@ -347,12 +347,11 @@
     </div>
     <form class="pet-composer" id="pet-composer" data-drag="false">
       <div class="pet-image-preview" id="pet-image-preview" hidden>
-        <img id="pet-image-preview-image" alt="待发送图片预览" />
-        <div class="pet-image-preview__meta">
-          <strong id="pet-image-preview-name"></strong>
-          <small id="pet-image-preview-size"></small>
+        <div class="pet-image-preview__header">
+          <small id="pet-image-preview-count">已选择 0 张图片</small>
+          <button class="pet-image-preview__clear" id="pet-image-clear" type="button">全部移除</button>
         </div>
-        <button class="pet-image-preview__remove" id="pet-image-remove" type="button" aria-label="移除图片">×</button>
+        <div class="pet-image-preview__list" id="pet-image-preview-list"></div>
       </div>
       <div class="pet-composer__row">
         <button class="pet-composer__attach" id="pet-image-button" type="button" aria-label="添加图片">＋</button>
@@ -360,6 +359,7 @@
           id="pet-image-input"
           type="file"
           accept="image/png,image/jpeg,image/webp,image/gif"
+          multiple
           hidden
         />
         <label class="pet-visually-hidden" for="pet-chat-input">输入消息</label>

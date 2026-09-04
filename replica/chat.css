@@ -493,7 +493,8 @@
 
 .pet-composer__attach,
 .pet-composer__send,
-.pet-image-preview__remove {
+.pet-image-preview__remove,
+.pet-image-preview__clear {
   align-items: center;
   border: 0;
   cursor: pointer;
@@ -562,28 +563,67 @@
 }
 
 .pet-image-preview {
-  align-items: center;
   background: #e7e1d6;
   border-radius: 16px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 58px minmax(0, 1fr) 36px;
   margin-bottom: 8px;
-  padding: 7px;
+  padding: 8px;
 }
 
 .pet-image-preview[hidden] {
   display: none;
 }
 
-.pet-image-preview img {
+.pet-image-preview__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 3px 7px;
+}
+
+.pet-image-preview__header small {
+  color: #756d61;
+  font-size: 11px;
+}
+
+.pet-image-preview__clear {
+  background: transparent;
+  color: #61594e;
+  min-height: 24px;
+  padding: 0 5px;
+}
+
+.pet-image-preview__clear:hover,
+.pet-image-preview__clear:focus-visible {
+  color: #161513;
+  outline: 1px solid #756d61;
+  outline-offset: 1px;
+}
+
+.pet-image-preview__list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.pet-image-preview__item {
+  flex: 0 0 74px;
+  min-width: 0;
+  position: relative;
+}
+
+.pet-image-preview__item img {
   border-radius: 11px;
-  height: 58px;
+  display: block;
+  height: 64px;
   object-fit: cover;
-  width: 58px;
+  width: 74px;
 }
 
 .pet-image-preview__meta {
+  margin-top: 4px;
   min-width: 0;
 }
 
@@ -596,28 +636,31 @@
 }
 
 .pet-image-preview__meta strong {
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .pet-image-preview__meta small {
   color: #756d61;
-  font-size: 10px;
-  margin-top: 3px;
+  font-size: 9px;
+  margin-top: 2px;
 }
 
 .pet-image-preview__remove {
-  background: transparent;
+  background: rgba(22, 21, 19, 0.82);
   border-radius: 50%;
-  color: #514c44;
-  min-height: 36px;
+  color: #f3efe6;
+  min-height: 24px;
   padding: 0;
-  width: 36px;
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  width: 24px;
 }
 
 .pet-image-preview__remove:hover,
 .pet-image-preview__remove:focus-visible {
-  background: #d3ccbf;
-  outline: 2px solid #514c44;
+  background: #161513;
+  outline: 2px solid #f3efe6;
 }
 
 .pet-visually-hidden {

@@ -9,10 +9,9 @@
   const attachButton = document.getElementById("pet-image-button");
   const sendButton = document.getElementById("pet-send");
   const preview = document.getElementById("pet-image-preview");
-  const previewImage = document.getElementById("pet-image-preview-image");
-  const previewName = document.getElementById("pet-image-preview-name");
-  const previewSize = document.getElementById("pet-image-preview-size");
-  const removeImageButton = document.getElementById("pet-image-remove");
+  const previewCount = document.getElementById("pet-image-preview-count");
+  const previewList = document.getElementById("pet-image-preview-list");
+  const clearImagesButton = document.getElementById("pet-image-clear");
   const bubble = document.getElementById("pet-bubble");
   const bubbleLabel = document.getElementById("pet-bubble-label");
   const bubbleText = document.getElementById("pet-bubble-text");
@@ -35,7 +34,8 @@
   const memoryContent = document.getElementById("pet-memory-content");
   const historyList = document.getElementById("pet-history-list");
   const historyClear = document.getElementById("pet-history-clear");
-  let image = null;
+  let images = [];
+  let nextImageId = 1;
   let busy = false;
   let idleTimer = null;
   let waitingTimer = null;
@@ -44,7 +44,8 @@
   let historyEntries = [];
 
   const allowedImages = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
-  const optimizeAboveBytes = 4 * 1024 * 1024;
+  const maxImageCount = 8;
+  const combinedImageBudget = 5 * 1024 * 1024;
   const historyStorageKey = "grok-pet-visible-history-v1";
   const apiRoot = location.pathname.startsWith("/experiments/icon-lab")
     ? "/experiments/icon-lab/api"
@@ -301,13 +302,58 @@
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   }
 
-  function clearImage() {
-    image = null;
+  function renderImages() {
+    previewList.replaceChildren();
+    preview.hidden = images.length === 0;
+    previewCount.textContent = `已选择 ${images.length} 张图片`;
+
+    for (const image of images) {
+      const item = document.createElement("article");
+      item.className = "pet-image-preview__item";
+
+      const thumbnail = document.createElement("img");
+      thumbnail.src = image.previewUrl;
+      thumbnail.alt = image.file.name || "待发送图片";
+
+      const meta = document.createElement("div");
+      meta.className = "pet-image-preview__meta";
+      const name = document.createElement("strong");
+      name.textContent = image.file.name || `图片 ${image.id}`;
+      const size = document.createElement("small");
+      size.textContent = formatBytes(image.file.size);
+      meta.append(name, size);
+
+      const remove = document.createElement("button");
+      remove.className = "pet-image-preview__remove";
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `移除 ${image.file.name || "图片"}`);
+      remove.addEventListener("click", () => removeImage(image.id));
+
+      item.append(thumbnail, meta, remove);
+      previewList.appendChild(item);
+    }
+  }
+
+  function removeImage(id) {
+    const target = images.find((image) => image.id === id);
+    if (target) URL.revokeObjectURL(target.previewUrl);
+    images = images.filter((image) => image.id !== id);
+    renderImages();
+    if (!busy) {
+      setBubble(
+        images.length ? `还剩 ${images.length} 张图片。` : "图片已经移除了。",
+        "ready",
+      );
+    }
+  }
+
+  function clearImages() {
+    for (const image of images) URL.revokeObjectURL(image.previewUrl);
+    images = [];
     fileInput.value = "";
-    preview.hidden = true;
-    previewImage.removeAttribute("src");
-    previewName.textContent = "";
-    previewSize.textContent = "";
+    renderImages();
+    if (!busy) setBubble("图片已经全部移除了。", "ready");
   }
 
   function readAsDataUrl(file) {
@@ -319,48 +365,87 @@
     });
   }
 
-  async function optimizeImage(file) {
-    if (file.size <= optimizeAboveBytes) {
+  function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("图片压缩失败")),
+        type,
+        quality,
+      );
+    });
+  }
+
+  async function optimizeImage(file, targetBytes, maxSide) {
+    if (file.size <= targetBytes) {
       return { dataUrl: await readAsDataUrl(file), optimized: false };
     }
 
     const bitmap = await createImageBitmap(file);
-    const maxSide = 2048;
-    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
     const context = canvas.getContext("2d", { alpha: true });
-    if (!context) throw new Error("浏览器无法处理这张图片");
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-
-    let quality = 0.88;
-    let dataUrl = canvas.toDataURL("image/webp", quality);
-    while (dataUrl.length > optimizeAboveBytes * 1.34 && quality > 0.52) {
-      quality -= 0.1;
-      dataUrl = canvas.toDataURL("image/webp", quality);
+    if (!context) {
+      bitmap.close();
+      throw new Error("浏览器无法处理这张图片");
     }
-    return { dataUrl, optimized: true };
+
+    let scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    let output = null;
+    for (let resizePass = 0; resizePass < 6; resizePass += 1) {
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      for (let quality = 0.88; quality >= 0.48; quality -= 0.1) {
+        output = await canvasToBlob(canvas, "image/webp", quality);
+        if (output.size <= targetBytes) break;
+      }
+      if (output?.size <= targetBytes) break;
+      scale *= 0.82;
+    }
+    bitmap.close();
+    if (!output || output.size > targetBytes) throw new Error("图片压缩后仍然过大");
+    return { dataUrl: await readAsDataUrl(output), optimized: true };
   }
 
-  async function readImage(file) {
-    if (!file || !allowedImages.has(file.type)) {
-      setBubble("请选择 PNG、JPG、WebP 或 GIF 图片。", "error");
+  function addImages(files) {
+    const selected = [...(files || [])];
+    if (!selected.length) return;
+    const invalid = selected.find((file) => !allowedImages.has(file.type));
+    if (invalid) {
+      setBubble("图片仅支持 PNG、JPG、WebP 或 GIF。", "error");
       return;
     }
-    setBubble("正在准备图片…", "thinking");
-    try {
-      const prepared = await optimizeImage(file);
-      image = { file, dataUrl: prepared.dataUrl };
-      previewImage.src = image.dataUrl;
-      previewName.textContent = file.name;
-      previewSize.textContent = `${formatBytes(file.size)}${prepared.optimized ? " · 已优化发送" : ""}`;
-      preview.hidden = false;
-      setBubble("图片准备好了，还可以补充一句想问我的话。", "ready");
-    } catch {
-      setBubble("这张图片处理失败了，请换一种格式再试。", "error");
+    const available = maxImageCount - images.length;
+    const accepted = selected.slice(0, Math.max(0, available));
+    for (const file of accepted) {
+      images.push({
+        id: nextImageId++,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
     }
+    fileInput.value = "";
+    renderImages();
+    if (selected.length > accepted.length) {
+      setBubble(`一条消息最多放 ${maxImageCount} 张，我先保留了前 ${maxImageCount} 张。`, "error");
+    } else {
+      setBubble(
+        images.length > 1
+          ? `${images.length} 张图片都放好了，可以补充一句想让我怎么看。`
+          : "图片放好了，还可以补充一句想问我的话。",
+        "ready",
+      );
+    }
+  }
+
+  async function prepareImagesForSend() {
+    if (!images.length) return [];
+    const targetBytes = Math.floor(combinedImageBudget / images.length);
+    const maxSide = images.length > 1 ? 1600 : 2048;
+    return Promise.all(images.map(async ({ file }) => {
+      const prepared = await optimizeImage(file, targetBytes, maxSide);
+      return prepared.dataUrl;
+    }));
   }
 
   function resizeInput() {
@@ -411,26 +496,30 @@
     clearTimeout(idleTimer);
     idleTimer = null;
     const text = input.value.trim();
-    if (!text && !image) {
+    if (!text && !images.length) {
       input.focus();
-      setBubble("写点什么，或者先放一张图片吧。", "error");
+      setBubble("写点什么，或者先放几张图片吧。", "error");
       return;
     }
 
-    const hasImage = Boolean(image);
-    const submittedImageName = image?.file?.name || "";
-    userEcho.textContent = hasImage
-      ? `你：${text || "发送了一张图片"} · ${image.file.name}`
+    const hasImages = images.length > 0;
+    const submittedImageNames = images.map(({ file }) => file.name || "未命名图片");
+    const imageSummary = submittedImageNames.length === 1
+      ? submittedImageNames[0]
+      : `${submittedImageNames.length} 张图片`;
+    userEcho.textContent = hasImages
+      ? `你：${text || `发送了 ${submittedImageNames.length} 张图片`} · ${imageSummary}`
       : `你：${text}`;
     userEcho.hidden = false;
     setBusy(true);
-    startWaiting(hasImage);
+    startWaiting(hasImages);
 
     try {
+      const preparedImages = await prepareImagesForSend();
       const response = await fetch(`${apiRoot}/pet/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, image: image?.dataUrl || null }),
+        body: JSON.stringify({ message: text, images: preparedImages }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok || typeof result.reply !== "string") {
@@ -461,8 +550,12 @@
       if (action) g.PET_SYNC?.action(action);
       input.value = "";
       resizeInput();
-      clearImage();
-      addHistory("user", text || "发送了一张图片", submittedImageName);
+      clearImages();
+      addHistory(
+        "user",
+        text || `发送了 ${submittedImageNames.length} 张图片`,
+        submittedImageNames.join("、"),
+      );
       addHistory("assistant", result.reply);
       if (expression) returnToIdle(6500);
     } catch (error) {
@@ -477,23 +570,23 @@
   }
 
   attachButton.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", () => readImage(fileInput.files?.[0]));
-  removeImageButton.addEventListener("click", clearImage);
+  fileInput.addEventListener("change", () => addImages(fileInput.files));
+  clearImagesButton.addEventListener("click", clearImages);
   input.addEventListener("input", resizeInput);
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void submit();
     } else if (event.key === "Escape") {
-      if (image) clearImage();
+      if (images.length) clearImages();
       else input.blur();
     }
   });
   input.addEventListener("paste", (event) => {
-    const pastedImage = [...(event.clipboardData?.files || [])].find((file) => file.type.startsWith("image/"));
-    if (pastedImage) {
+    const pastedImages = [...(event.clipboardData?.files || [])].filter((file) => file.type.startsWith("image/"));
+    if (pastedImages.length) {
       event.preventDefault();
-      readImage(pastedImage);
+      addImages(pastedImages);
     }
   });
   form.addEventListener("submit", (event) => {
@@ -516,8 +609,8 @@
     event.preventDefault();
     dragDepth = 0;
     form.dataset.drag = "false";
-    const droppedImage = [...(event.dataTransfer?.files || [])].find((file) => file.type.startsWith("image/"));
-    if (droppedImage) readImage(droppedImage);
+    const droppedImages = [...(event.dataTransfer?.files || [])].filter((file) => file.type.startsWith("image/"));
+    if (droppedImages.length) addImages(droppedImages);
   });
 
   memoryTrigger.addEventListener("click", openMemory);
@@ -569,6 +662,7 @@
     thinking(text = "让我想一想…") {
       setBubble(String(text), "thinking");
     },
-    clearImage,
+    clearImage: clearImages,
+    clearImages,
   };
 })(window);
