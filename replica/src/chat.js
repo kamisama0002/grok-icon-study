@@ -45,6 +45,9 @@
   const allowedImages = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
   const optimizeAboveBytes = 4 * 1024 * 1024;
   const historyStorageKey = "grok-pet-visible-history-v1";
+  const apiRoot = location.pathname.startsWith("/experiments/icon-lab")
+    ? "/experiments/icon-lab/api"
+    : "/api";
 
   function setBubble(text, state = "ready", label = petLabel) {
     bubble.dataset.state = state;
@@ -116,7 +119,7 @@
 
   async function loadProfile() {
     try {
-      const response = await fetch("/api/pet/profile", { cache: "no-store" });
+      const response = await fetch(`${apiRoot}/pet/profile`, { cache: "no-store" });
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error();
       applyProfile(result.profile);
@@ -130,7 +133,7 @@
     const controls = [...personaForm.elements];
     controls.forEach((control) => { control.disabled = true; });
     try {
-      const response = await fetch("/api/pet/profile", {
+      const response = await fetch(`${apiRoot}/pet/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reset ? { reset: true } : { profile }),
@@ -200,7 +203,7 @@
   async function loadLongMemories() {
     memoryRefresh.disabled = true;
     try {
-      const response = await fetch("/api/pet/memories", { cache: "no-store" });
+      const response = await fetch(`${apiRoot}/pet/memories`, { cache: "no-store" });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || "读取失败");
       renderLongMemories(result.groups);
@@ -214,7 +217,7 @@
 
   async function updateMemory(method, payload) {
     try {
-      const response = await fetch("/api/pet/memories", {
+      const response = await fetch(`${apiRoot}/pet/memories`, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -354,7 +357,7 @@
     g.PET_SYNC?.state({ mode: "hold", state: "thinking", emphasis: true });
 
     try {
-      const response = await fetch("/api/pet/chat", {
+      const response = await fetch(`${apiRoot}/pet/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, image: image?.dataUrl || null }),

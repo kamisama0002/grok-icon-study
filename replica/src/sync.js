@@ -5,9 +5,12 @@
   let latestRevision = -1;
   let currentState = null;
   const clientId = Math.random().toString(36).slice(2, 12);
+  const apiRoot = location.pathname.startsWith("/experiments/icon-lab")
+    ? "/experiments/icon-lab/api"
+    : "/api";
 
   function post(payload) {
-    return fetch("/api/pet-state", {
+    return fetch(`${apiRoot}/pet-state`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -54,7 +57,7 @@
     }
   }
 
-  const events = new EventSource("/api/pet-events");
+  const events = new EventSource(`${apiRoot}/pet-events`);
   events.onmessage = (event) => {
     try {
       const payload = JSON.parse(event.data);
