@@ -5,8 +5,8 @@ Wants=network-online.target docker.service
 
 [Service]
 Type=simple
-User=10000
-Group=10000
+User=hermes-pet-bridge
+Group=hermes-pet-bridge
 WorkingDirectory=/opt/grok-icon-study
 EnvironmentFile=/etc/grok-pet-bridge.env
 Environment=HOST=127.0.0.1
