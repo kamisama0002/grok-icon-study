@@ -430,12 +430,12 @@
         ? control.expression
         : allowedExpressions.has(result.emotion)
           ? result.emotion
-          : "happy";
+          : null;
       if (result.profile) applyProfile(result.profile, { syncAppearance: false });
       setBubble(result.reply, "ready");
       const statePatch = {
         mode: "hold",
-        state: expression,
+        state: expression || "idle",
         emphasis: typeof control.emphasis === "boolean"
           ? control.emphasis
           : Boolean(result.profile?.emphasis),
@@ -446,13 +446,12 @@
       g.PET_SYNC?.state(statePatch);
       const action = allowedActions.has(control.action) ? control.action : null;
       if (action) g.PET_SYNC?.action(action);
-      else if (expression === "happy" || expression === "proud") g.PET_SYNC?.action("bounce");
       input.value = "";
       resizeInput();
       clearImage();
       addHistory("user", text || "发送了一张图片", submittedImageName);
       addHistory("assistant", result.reply);
-      returnToIdle(control.expression ? 6500 : 2800);
+      if (expression) returnToIdle(6500);
     } catch (error) {
       stopWaiting();
       setBubble(error instanceof Error ? error.message : "暂时没有收到回复，请稍后再试", "error");
