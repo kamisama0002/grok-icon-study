@@ -603,7 +603,26 @@
 
       if (this.extras.eyeBoost != null) this.eyeScale.t = this.extras.eyeBoost;
 
-      if (this.state !== "waking" && this.state !== "sleeping" && now >= this.eyeUntil) {
+      const frontIdle =
+        this.mode === "hold" &&
+        this.state === "idle" &&
+        !this.followPointer &&
+        !this.gazeTarget;
+
+      if (frontIdle) {
+        const firstIdleEye = EYE_PLAYLIST.idle[0];
+        if (this.eyeFrom !== firstIdleEye || this.eyeTo !== firstIdleEye) {
+          this.eyeIdx = 0;
+          this.eyeFrom = firstIdleEye;
+          this.eyeTo = firstIdleEye;
+          this._fromPolys = null;
+          this.eyeMorph.x = 1;
+          this.eyeMorph.t = 1;
+          this.eyeMorph.v = 0;
+        }
+        this.gazeX.t = 0;
+        this.gazeY.t = 0;
+      } else if (this.state !== "waking" && this.state !== "sleeping" && now >= this.eyeUntil) {
         const list = EYE_PLAYLIST[this.state];
         this.eyeIdx = (this.eyeIdx + 1 + Math.floor(rand(0, list.length - 1))) % list.length;
         const stiff = this.state === "searching" || this.state === "excited" ? 10 : 6;
@@ -619,7 +638,7 @@
       const blinkKey = EY.consumeBlink(this.blinkQueue, now);
       this.blink.t = blinkKey ?? (this.blinkQueue.length ? this.blink.t : (this.extras.lidMul ?? pose.lid));
 
-      if (now >= this.gazeUntil) {
+      if (!frontIdle && now >= this.gazeUntil) {
         const gz = nextGaze(this.state);
         this.gazeX.t = gz.x;
         this.gazeY.t = gz.y;
