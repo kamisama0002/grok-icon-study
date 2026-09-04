@@ -187,8 +187,8 @@
       </div>
     </div>
     <div class="modes">
-      <button id="mode-onboard" aria-pressed="true">登录轮换</button>
-      <button id="mode-hold" aria-pressed="false">锁定状态</button>
+      <button id="mode-onboard" aria-pressed="false">登录轮换</button>
+      <button id="mode-hold" aria-pressed="true">锁定状态</button>
     </div>
     <div class="modes">
       <button id="opt-follow" aria-pressed="false">跟随指针</button>
@@ -238,7 +238,7 @@
         <code>src/</code>：math / tables / pose / tricks / eyes / fx / character。
         右侧 64px 带 <code>pose.scale ≈ 1.04</code>。thinking / orbit / writing / loading
         等会切 overlay；celebrate 会 <code>spinWild</code>；换身形走弹簧并轮换一记特技。
-        首屏仍从 curious 起播，点「登录轮换」则按 <code>pjn</code> 从 idle 重来。
+        首屏以 idle 正面待机，点「登录轮换」后按 <code>pjn</code> 从 idle 开始。
         角色默认看向正面；需要时可手动开启指针跟随。
       </p>
     </section>
@@ -303,7 +303,7 @@
     stateRoot.appendChild(row);
   });
 
-  const shared = { mode: "onboarding", shape: "blob", color: "black", scheme: "light", loginWrap: true };
+  const shared = { mode: "hold", shape: "blob", color: "black", scheme: "light", loginWrap: true };
   const bot = new GrokCharacter(document.getElementById("bot"), {
     ...shared,
     followPointer: false,
@@ -313,10 +313,9 @@
   const bots = [bot, bot64];
   window.__bots = bots;
   PET_SYNC.register(bots);
-  // skip the first idle beat so the face is obvious on load
+  // Start from a neutral, front-facing pose. The designer can opt into onboarding rotation.
   bots.forEach((el) => {
-    el.moodN = 1;
-    el.setState("curious", { resetEyes: true });
+    el.setState("idle", { resetEyes: true });
   });
   setInterval(() => paintReadout(bot.snapshot()), 80);
 

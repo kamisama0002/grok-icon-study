@@ -13,8 +13,8 @@ const designerClientPort = String(process.env.DESIGNER_CLIENT_PORT || "19091");
 const clients = new Set();
 const state = {
   revision: 0,
-  mode: "onboarding",
-  state: "curious",
+  mode: "hold",
+  state: "idle",
   shape: "blob",
   color: "black",
   followPointer: false,
