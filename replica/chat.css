@@ -115,12 +115,78 @@
 }
 
 .pet-persona,
+.pet-model-picker,
 .pet-long-memory,
 .pet-memory-history {
   background: #eae4d9;
   border: 1px solid rgba(22, 21, 19, 0.1);
   border-radius: 22px;
   padding: 17px;
+}
+
+.pet-model-options {
+  background: rgba(255, 253, 248, 0.66);
+  border: 1px solid rgba(22, 21, 19, 0.12);
+  border-radius: 15px;
+  display: grid;
+  gap: 5px;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+}
+
+.pet-model-options button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: #655e54;
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.pet-model-options button[aria-pressed="true"] {
+  background: #161513;
+  border-color: #161513;
+  color: #f3efe6;
+  box-shadow: 0 5px 15px rgba(22, 21, 19, 0.18);
+}
+
+.pet-model-options button:not([aria-pressed="true"]):hover,
+.pet-model-options button:not([aria-pressed="true"]):focus-visible {
+  background: #ded7cb;
+  color: #161513;
+  outline: 0;
+}
+
+.pet-model-options button:disabled {
+  cursor: wait;
+  opacity: 0.56;
+}
+
+.pet-model-options strong,
+.pet-model-options small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-model-options strong {
+  font-size: 13px;
+}
+
+.pet-model-options small {
+  font-size: 10px;
+  opacity: 0.72;
+}
+
+.pet-model-note {
+  color: #81786b;
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 9px 2px 0;
 }
 
 .pet-memory-add {

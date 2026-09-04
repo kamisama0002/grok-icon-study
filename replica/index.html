@@ -305,6 +305,24 @@
           </div>
         </form>
 
+        <section class="pet-model-picker" aria-labelledby="pet-model-title">
+          <div class="pet-memory-section-title">
+            <h3 id="pet-model-title">对话模型</h3>
+            <span id="pet-model-status">当前 Luna</span>
+          </div>
+          <div class="pet-model-options" role="group" aria-label="切换桌宠对话模型">
+            <button type="button" data-pet-model="gpt-5.6-luna" aria-pressed="true">
+              <strong>Luna</strong>
+              <small>更快 · 日常聊天</small>
+            </button>
+            <button type="button" data-pet-model="gpt-5.6-sol" aria-pressed="false">
+              <strong>Sol</strong>
+              <small>更强 · 复杂问题</small>
+            </button>
+          </div>
+          <p class="pet-model-note">切换后从下一条消息开始生效，不会清空记忆或最近对话。</p>
+        </section>
+
         <section class="pet-long-memory" aria-labelledby="pet-long-memory-title">
           <div class="pet-memory-section-title">
             <h3 id="pet-long-memory-title">长期记忆</h3>

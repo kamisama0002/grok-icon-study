@@ -27,6 +27,8 @@
   const profilePersonality = document.getElementById("pet-profile-personality");
   const profileNotes = document.getElementById("pet-profile-notes");
   const personaReset = document.getElementById("pet-persona-reset");
+  const modelStatus = document.getElementById("pet-model-status");
+  const modelButtons = [...document.querySelectorAll("[data-pet-model]")];
   const longMemoryList = document.getElementById("pet-long-memory-list");
   const memoryRefresh = document.getElementById("pet-memory-refresh");
   const memoryAdd = document.getElementById("pet-memory-add");
@@ -42,10 +44,15 @@
   let dragDepth = 0;
   let petLabel = "桌宠";
   let historyEntries = [];
+  let currentProfile = {};
 
   const allowedImages = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
   const maxImageCount = 8;
   const combinedImageBudget = 5 * 1024 * 1024;
+  const modelLabels = {
+    "gpt-5.6-luna": "Luna",
+    "gpt-5.6-sol": "Sol",
+  };
   const historyStorageKey = "grok-pet-visible-history-v1";
   const apiRoot = location.pathname.startsWith("/experiments/icon-lab")
     ? "/experiments/icon-lab/api"
@@ -138,12 +145,18 @@
 
   function applyProfile(profile, { welcome = false, syncAppearance = true } = {}) {
     const next = profile && typeof profile === "object" ? profile : {};
+    currentProfile = { ...next };
     profileName.value = next.petName || "";
     profileAddress.value = next.userAddress || "";
     profilePersonality.value = next.personality || "warm";
     profileNotes.value = next.notes || "";
     petLabel = next.petName || "桌宠";
     bubbleLabel.textContent = petLabel;
+    const selectedModel = modelLabels[next.model] ? next.model : "gpt-5.6-luna";
+    modelStatus.textContent = `当前 ${modelLabels[selectedModel]}`;
+    for (const button of modelButtons) {
+      button.setAttribute("aria-pressed", String(button.dataset.petModel === selectedModel));
+    }
     if (welcome && userEcho.hidden && !busy) {
       if (next.petName) {
         const greeting = next.userAddress
@@ -196,6 +209,29 @@
       personaStatus.textContent = error instanceof Error ? error.message : "保存失败";
     } finally {
       controls.forEach((control) => { control.disabled = false; });
+    }
+  }
+
+  async function switchModel(model) {
+    if (!modelLabels[model] || busy || currentProfile.model === model) return;
+    const previousModel = modelLabels[currentProfile.model] ? currentProfile.model : "gpt-5.6-luna";
+    modelStatus.textContent = `正在切换到 ${modelLabels[model]}…`;
+    modelButtons.forEach((button) => { button.disabled = true; });
+    try {
+      const response = await fetch(`${apiRoot}/pet/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile: { ...currentProfile, model } }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || "模型切换失败");
+      applyProfile(result.profile, { syncAppearance: false });
+      setBubble(`好，下一条开始我用 ${modelLabels[model]} 来回应。`, "ready");
+    } catch (error) {
+      modelStatus.textContent = `当前 ${modelLabels[previousModel]}`;
+      setBubble(error instanceof Error ? error.message : "模型切换失败", "error");
+    } finally {
+      modelButtons.forEach((button) => { button.disabled = false; });
     }
   }
 
@@ -458,6 +494,7 @@
     input.disabled = nextBusy;
     attachButton.disabled = nextBusy;
     sendButton.disabled = nextBusy;
+    modelButtons.forEach((button) => { button.disabled = nextBusy; });
     sendButton.textContent = nextBusy ? "回应中" : "发送";
   }
 
@@ -616,6 +653,9 @@
   memoryTrigger.addEventListener("click", openMemory);
   memoryBackdrop.addEventListener("click", closeMemory);
   memoryClose.addEventListener("click", closeMemory);
+  modelButtons.forEach((button) => {
+    button.addEventListener("click", () => void switchModel(button.dataset.petModel || ""));
+  });
   personaForm.addEventListener("submit", (event) => {
     event.preventDefault();
     void saveProfile({
