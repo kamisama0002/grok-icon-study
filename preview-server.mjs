@@ -223,7 +223,7 @@ function profilePatchFromMessage(message) {
   if (/忘掉.*(?:称呼|叫我什么)|不要再这样称呼我/.test(message)) patch.userAddress = "";
 
   if (!/你叫什么|你的名字是什么/.test(message)) {
-    const name = message.match(/(?:你(?:以后)?叫|给你取名(?:叫)?|你的名字(?:是|叫))\s*[“"']?([^\s，。！？,!?'”]{1,16})/);
+    const name = message.match(/(?:你(?:以后)?叫|(?:以后)?就?叫你|给你(?:取|起)(?:个)?名字(?:叫)?|你的名字(?:是|叫)|名字(?:就)?叫)\s*[“"']?([^\s，。！？,!?'”]{1,16})/);
     if (name) patch.petName = captured(name[1]);
   }
   const address = message.match(/(?:以后|从现在起)?\s*(?:就)?叫我\s*[“"']?([^\s，。！？,!?'”]{1,16})/);
