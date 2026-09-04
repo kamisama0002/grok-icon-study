@@ -1,2 +1,8 @@
 .playwright-cli/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
 
