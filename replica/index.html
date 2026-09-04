@@ -179,7 +179,7 @@
       <button id="mode-hold" aria-pressed="false">锁定状态</button>
     </div>
     <div class="modes">
-      <button id="opt-follow" aria-pressed="true">跟随指针</button>
+      <button id="opt-follow" aria-pressed="false">跟随指针</button>
       <button id="opt-emphasis" aria-pressed="false">emphasis</button>
       <button id="act-spin">转一圈</button>
       <button id="act-bounce">跳一下</button>
@@ -227,7 +227,7 @@
         右侧 64px 带 <code>pose.scale ≈ 1.04</code>。thinking / orbit / writing / loading
         等会切 overlay；celebrate 会 <code>spinWild</code>；换身形走弹簧并轮换一记特技。
         首屏仍从 curious 起播，点「登录轮换」则按 <code>pjn</code> 从 idle 重来。
-        大预览默认开指针跟随；源码 <code>sd().isFollowingPointer</code> 默认关。
+        角色默认看向正面；需要时可手动开启指针跟随。
       </p>
     </section>
   </div>
@@ -292,7 +292,7 @@
   const shared = { mode: "onboarding", shape: "blob", color: "black", scheme: "light", loginWrap: true };
   const bot = new GrokCharacter(document.getElementById("bot"), {
     ...shared,
-    followPointer: true,
+    followPointer: false,
     onChange(snap) { paintReadout(snap); markState(snap.state); },
   });
   const bot64 = new GrokCharacter(document.getElementById("bot64"), { ...shared, sizePx: 64 });
