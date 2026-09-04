@@ -246,6 +246,71 @@
     </section>
   </div>
   <section class="pet-chat" aria-label="桌宠对话">
+    <button
+      class="pet-memory-trigger"
+      id="pet-memory-trigger"
+      type="button"
+      aria-controls="pet-memory-drawer"
+      aria-expanded="false"
+    >记忆</button>
+    <div class="pet-memory-layer" id="pet-memory-layer" hidden>
+      <button class="pet-memory-backdrop" id="pet-memory-backdrop" type="button" aria-label="关闭记忆抽屉"></button>
+      <aside class="pet-memory-drawer" id="pet-memory-drawer" role="dialog" aria-modal="true" aria-labelledby="pet-memory-title">
+        <header class="pet-memory-header">
+          <div>
+            <small>MEMORY</small>
+            <h2 id="pet-memory-title">记忆与人格</h2>
+          </div>
+          <button class="pet-memory-close" id="pet-memory-close" type="button" aria-label="关闭">×</button>
+        </header>
+
+        <form class="pet-persona" id="pet-persona-form">
+          <div class="pet-memory-section-title">
+            <h3>人格卡片</h3>
+            <span id="pet-persona-status">自动保存到这只桌宠</span>
+          </div>
+          <div class="pet-persona-grid">
+            <label>
+              <span>它的名字</span>
+              <input id="pet-profile-name" name="petName" maxlength="16" placeholder="等你来取名" />
+            </label>
+            <label>
+              <span>怎么称呼你</span>
+              <input id="pet-profile-address" name="userAddress" maxlength="16" placeholder="你、主人或昵称" />
+            </label>
+          </div>
+          <label>
+            <span>相处风格</span>
+            <select id="pet-profile-personality" name="personality">
+              <option value="warm">温柔活泼</option>
+              <option value="calm">安静治愈</option>
+              <option value="bright">元气可爱</option>
+              <option value="steady">冷静可靠</option>
+              <option value="playful">俏皮机灵</option>
+            </select>
+          </label>
+          <label>
+            <span>补充设定</span>
+            <textarea id="pet-profile-notes" name="notes" maxlength="300" rows="3" placeholder="例如：少说大道理，偶尔讲冷笑话"></textarea>
+          </label>
+          <div class="pet-persona-actions">
+            <button class="pet-persona-reset" id="pet-persona-reset" type="button">恢复默认</button>
+            <button class="pet-persona-save" type="submit">保存人格</button>
+          </div>
+        </form>
+
+        <section class="pet-memory-history" aria-labelledby="pet-history-title">
+          <div class="pet-memory-section-title">
+            <h3 id="pet-history-title">最近对话</h3>
+            <button id="pet-history-clear" type="button">清空显示</button>
+          </div>
+          <div class="pet-history-list" id="pet-history-list">
+            <p class="pet-history-empty">还没有对话。图片只显示名称，不会保存在浏览器记录里。</p>
+          </div>
+          <p class="pet-memory-footnote">这里只清理当前浏览器里的显示记录，不会删除桌宠的长期记忆。</p>
+        </section>
+      </aside>
+    </div>
     <div class="pet-bubble" id="pet-bubble" role="status" aria-live="polite" data-state="ready">
       <span class="pet-bubble__status" aria-hidden="true"></span>
       <div class="pet-bubble__copy">

@@ -17,18 +17,142 @@
   const bubbleLabel = document.getElementById("pet-bubble-label");
   const bubbleText = document.getElementById("pet-bubble-text");
   const userEcho = document.getElementById("pet-user-echo");
+  const memoryTrigger = document.getElementById("pet-memory-trigger");
+  const memoryLayer = document.getElementById("pet-memory-layer");
+  const memoryBackdrop = document.getElementById("pet-memory-backdrop");
+  const memoryClose = document.getElementById("pet-memory-close");
+  const personaForm = document.getElementById("pet-persona-form");
+  const personaStatus = document.getElementById("pet-persona-status");
+  const profileName = document.getElementById("pet-profile-name");
+  const profileAddress = document.getElementById("pet-profile-address");
+  const profilePersonality = document.getElementById("pet-profile-personality");
+  const profileNotes = document.getElementById("pet-profile-notes");
+  const personaReset = document.getElementById("pet-persona-reset");
+  const historyList = document.getElementById("pet-history-list");
+  const historyClear = document.getElementById("pet-history-clear");
   let image = null;
   let busy = false;
   let idleTimer = null;
   let dragDepth = 0;
+  let petLabel = "桌宠";
+  let historyEntries = [];
 
   const allowedImages = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
   const optimizeAboveBytes = 4 * 1024 * 1024;
+  const historyStorageKey = "grok-pet-visible-history-v1";
 
-  function setBubble(text, state = "ready", label = "桌宠") {
+  function setBubble(text, state = "ready", label = petLabel) {
     bubble.dataset.state = state;
     bubbleLabel.textContent = label;
     bubbleText.textContent = text;
+  }
+
+  function loadHistory() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(historyStorageKey) || "[]");
+      historyEntries = Array.isArray(stored)
+        ? stored.filter((item) => item && ["user", "assistant"].includes(item.role)).slice(-40)
+        : [];
+    } catch {
+      historyEntries = [];
+    }
+  }
+
+  function saveHistory() {
+    localStorage.setItem(historyStorageKey, JSON.stringify(historyEntries.slice(-40)));
+  }
+
+  function renderHistory() {
+    if (!historyList) return;
+    historyList.replaceChildren();
+    if (!historyEntries.length) {
+      const empty = document.createElement("p");
+      empty.className = "pet-history-empty";
+      empty.textContent = "还没有对话。图片只显示名称，不会保存在浏览器记录里。";
+      historyList.appendChild(empty);
+      return;
+    }
+    for (const item of historyEntries) {
+      const entry = document.createElement("article");
+      entry.className = "pet-history-item";
+      entry.dataset.role = item.role;
+      const meta = document.createElement("small");
+      meta.textContent = item.role === "user" ? "你" : petLabel;
+      const copy = document.createElement("p");
+      copy.textContent = `${item.text}${item.imageName ? `\n[图片] ${item.imageName}` : ""}`;
+      entry.append(meta, copy);
+      historyList.appendChild(entry);
+    }
+    historyList.scrollTop = historyList.scrollHeight;
+  }
+
+  function addHistory(role, text, imageName = "") {
+    historyEntries.push({
+      role,
+      text: String(text || "").slice(0, 2_000),
+      imageName: String(imageName || "").slice(0, 120),
+      at: Date.now(),
+    });
+    historyEntries = historyEntries.slice(-40);
+    saveHistory();
+    renderHistory();
+  }
+
+  function applyProfile(profile) {
+    const next = profile && typeof profile === "object" ? profile : {};
+    profileName.value = next.petName || "";
+    profileAddress.value = next.userAddress || "";
+    profilePersonality.value = next.personality || "warm";
+    profileNotes.value = next.notes || "";
+    petLabel = next.petName || "桌宠";
+    bubbleLabel.textContent = petLabel;
+    renderHistory();
+  }
+
+  async function loadProfile() {
+    try {
+      const response = await fetch("/api/pet/profile", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error();
+      applyProfile(result.profile);
+    } catch {
+      personaStatus.textContent = "暂时无法读取设定";
+    }
+  }
+
+  async function saveProfile(profile, reset = false) {
+    personaStatus.textContent = "保存中…";
+    const controls = [...personaForm.elements];
+    controls.forEach((control) => { control.disabled = true; });
+    try {
+      const response = await fetch("/api/pet/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reset ? { reset: true } : { profile }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || "保存失败");
+      applyProfile(result.profile);
+      personaStatus.textContent = "已保存";
+      setBubble(reset ? "人格设定已经恢复默认。" : "好，我会照这个方式和你相处。", "ready");
+    } catch (error) {
+      personaStatus.textContent = error instanceof Error ? error.message : "保存失败";
+    } finally {
+      controls.forEach((control) => { control.disabled = false; });
+    }
+  }
+
+  function openMemory() {
+    memoryLayer.hidden = false;
+    memoryTrigger.setAttribute("aria-expanded", "true");
+    renderHistory();
+    memoryClose.focus();
+  }
+
+  function closeMemory() {
+    memoryLayer.hidden = true;
+    memoryTrigger.setAttribute("aria-expanded", "false");
+    memoryTrigger.focus();
   }
 
   function formatBytes(bytes) {
@@ -131,6 +255,7 @@
     }
 
     const hasImage = Boolean(image);
+    const submittedImageName = image?.file?.name || "";
     userEcho.textContent = hasImage
       ? `你：${text || "发送了一张图片"} · ${image.file.name}`
       : `你：${text}`;
@@ -152,12 +277,15 @@
 
       const allowedEmotions = new Set(["idle", "happy", "curious", "proud", "sad"]);
       const emotion = allowedEmotions.has(result.emotion) ? result.emotion : "happy";
+      if (result.profile) applyProfile(result.profile);
       setBubble(result.reply, "ready");
       g.PET_SYNC?.state({ mode: "hold", state: emotion, emphasis: false });
       if (emotion === "happy" || emotion === "proud") g.PET_SYNC?.action("bounce");
       input.value = "";
       resizeInput();
       clearImage();
+      addHistory("user", text || "发送了一张图片", submittedImageName);
+      addHistory("assistant", result.reply);
       returnToIdle();
     } catch (error) {
       setBubble(error instanceof Error ? error.message : "暂时没有收到回复，请稍后再试", "error");
@@ -211,6 +339,37 @@
     const droppedImage = [...(event.dataTransfer?.files || [])].find((file) => file.type.startsWith("image/"));
     if (droppedImage) readImage(droppedImage);
   });
+
+  memoryTrigger.addEventListener("click", openMemory);
+  memoryBackdrop.addEventListener("click", closeMemory);
+  memoryClose.addEventListener("click", closeMemory);
+  personaForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void saveProfile({
+      petName: profileName.value,
+      userAddress: profileAddress.value,
+      personality: profilePersonality.value,
+      notes: profileNotes.value,
+    });
+  });
+  personaReset.addEventListener("click", () => {
+    if (confirm("恢复默认名字、称呼和相处风格吗？")) void saveProfile({}, true);
+  });
+  historyClear.addEventListener("click", () => {
+    historyEntries = [];
+    saveHistory();
+    renderHistory();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !memoryLayer.hidden) {
+      event.preventDefault();
+      closeMemory();
+    }
+  });
+
+  loadHistory();
+  renderHistory();
+  void loadProfile();
 
   g.PET_CHAT = {
     reply(text) {
