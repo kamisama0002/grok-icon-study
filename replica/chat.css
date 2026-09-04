@@ -112,11 +112,109 @@
 }
 
 .pet-persona,
+.pet-long-memory,
 .pet-memory-history {
   background: #eae4d9;
   border: 1px solid rgba(22, 21, 19, 0.1);
   border-radius: 22px;
   padding: 17px;
+}
+
+.pet-memory-add {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  margin-bottom: 13px;
+}
+
+.pet-memory-add select,
+.pet-memory-add input {
+  appearance: none;
+  background: rgba(255, 253, 248, 0.84);
+  border: 1px solid rgba(22, 21, 19, 0.16);
+  border-radius: 11px;
+  color: #161513;
+  font: inherit;
+  min-width: 0;
+  outline: 0;
+  padding: 9px 10px;
+}
+
+.pet-memory-add input:focus,
+.pet-memory-add select:focus {
+  border-color: #28a883;
+  box-shadow: 0 0 0 3px rgba(40, 168, 131, 0.13);
+}
+
+.pet-memory-add button {
+  background: #161513;
+  border: 1px solid #161513;
+  border-radius: 11px;
+  color: #f3efe6;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 12px;
+}
+
+.pet-long-memory-list {
+  display: grid;
+  gap: 8px;
+}
+
+.pet-long-memory-group + .pet-long-memory-group {
+  margin-top: 5px;
+}
+
+.pet-long-memory-group > small {
+  color: #8a8175;
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: 0 0 6px 2px;
+}
+
+.pet-memory-entry {
+  align-items: flex-start;
+  background: rgba(255, 253, 248, 0.72);
+  border-radius: 13px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 11px;
+}
+
+.pet-memory-entry + .pet-memory-entry {
+  margin-top: 7px;
+}
+
+.pet-memory-entry p {
+  color: #413c35;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.pet-memory-entry__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.pet-memory-entry__actions button {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: #756d61;
+  font-size: 10px;
+  padding: 4px 5px;
+}
+
+.pet-memory-entry__actions button:hover,
+.pet-memory-entry__actions button:focus-visible {
+  background: #ddd5c8;
+  color: #161513;
 }
 
 .pet-memory-section-title {
@@ -548,6 +646,15 @@
   .pet-persona-grid {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+
+  .pet-memory-add {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .pet-memory-add button {
+    grid-column: 1 / -1;
+    min-height: 38px;
   }
 
   .pet-bubble {

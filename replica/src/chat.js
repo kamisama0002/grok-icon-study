@@ -28,6 +28,11 @@
   const profilePersonality = document.getElementById("pet-profile-personality");
   const profileNotes = document.getElementById("pet-profile-notes");
   const personaReset = document.getElementById("pet-persona-reset");
+  const longMemoryList = document.getElementById("pet-long-memory-list");
+  const memoryRefresh = document.getElementById("pet-memory-refresh");
+  const memoryAdd = document.getElementById("pet-memory-add");
+  const memoryTarget = document.getElementById("pet-memory-target");
+  const memoryContent = document.getElementById("pet-memory-content");
   const historyList = document.getElementById("pet-history-list");
   const historyClear = document.getElementById("pet-history-clear");
   let image = null;
@@ -142,10 +147,94 @@
     }
   }
 
+  function renderLongMemories(groups) {
+    longMemoryList.replaceChildren();
+    const populated = (groups || []).filter((group) => Array.isArray(group.entries) && group.entries.length);
+    if (!populated.length) {
+      const empty = document.createElement("p");
+      empty.className = "pet-history-empty";
+      empty.textContent = "还没有长期记忆。聊天里说“记住……”，或者在这里添加。";
+      longMemoryList.appendChild(empty);
+      return;
+    }
+
+    for (const group of populated) {
+      const section = document.createElement("section");
+      section.className = "pet-long-memory-group";
+      const label = document.createElement("small");
+      label.textContent = `${group.label} · ${group.used}/${group.limit}`;
+      section.appendChild(label);
+
+      for (const value of group.entries) {
+        const entry = document.createElement("article");
+        entry.className = "pet-memory-entry";
+        const copy = document.createElement("p");
+        copy.textContent = value;
+        const actions = document.createElement("div");
+        actions.className = "pet-memory-entry__actions";
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.textContent = "修改";
+        edit.addEventListener("click", () => {
+          const next = prompt("修改这条记忆", value);
+          if (next !== null && next.trim() && next.trim() !== value) {
+            void updateMemory("PUT", { target: group.target, oldText: value, content: next });
+          }
+        });
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "忘记";
+        remove.addEventListener("click", () => {
+          if (confirm("让桌宠忘掉这条长期记忆吗？")) {
+            void updateMemory("DELETE", { target: group.target, oldText: value });
+          }
+        });
+        actions.append(edit, remove);
+        entry.append(copy, actions);
+        section.appendChild(entry);
+      }
+      longMemoryList.appendChild(section);
+    }
+  }
+
+  async function loadLongMemories() {
+    memoryRefresh.disabled = true;
+    try {
+      const response = await fetch("/api/pet/memories", { cache: "no-store" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || "读取失败");
+      renderLongMemories(result.groups);
+    } catch (error) {
+      renderLongMemories([]);
+      personaStatus.textContent = error instanceof Error ? error.message : "读取记忆失败";
+    } finally {
+      memoryRefresh.disabled = false;
+    }
+  }
+
+  async function updateMemory(method, payload) {
+    try {
+      const response = await fetch("/api/pet/memories", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || "记忆没有更新成功");
+      renderLongMemories(result.groups);
+      setBubble(method === "DELETE" ? "好，我已经忘掉那件事了。" : "好，这件事我会记住。", "ready");
+      return true;
+    } catch (error) {
+      personaStatus.textContent = error instanceof Error ? error.message : "记忆没有更新成功";
+      return false;
+    }
+  }
+
   function openMemory() {
     memoryLayer.hidden = false;
     memoryTrigger.setAttribute("aria-expanded", "true");
     renderHistory();
+    void loadLongMemories();
     memoryClose.focus();
   }
 
@@ -359,6 +448,17 @@
     historyEntries = [];
     saveHistory();
     renderHistory();
+  });
+  memoryRefresh.addEventListener("click", () => void loadLongMemories());
+  memoryAdd.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const content = memoryContent.value.trim();
+    if (!content) {
+      memoryContent.focus();
+      return;
+    }
+    const saved = await updateMemory("POST", { target: memoryTarget.value, content });
+    if (saved) memoryContent.value = "";
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !memoryLayer.hidden) {

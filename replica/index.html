@@ -299,6 +299,24 @@
           </div>
         </form>
 
+        <section class="pet-long-memory" aria-labelledby="pet-long-memory-title">
+          <div class="pet-memory-section-title">
+            <h3 id="pet-long-memory-title">长期记忆</h3>
+            <button id="pet-memory-refresh" type="button">刷新</button>
+          </div>
+          <form class="pet-memory-add" id="pet-memory-add">
+            <select id="pet-memory-target" aria-label="记忆类型">
+              <option value="user">关于你</option>
+              <option value="memory">共同记忆</option>
+            </select>
+            <input id="pet-memory-content" maxlength="700" placeholder="写下一件要长期记住的事" aria-label="新的长期记忆" />
+            <button type="submit">记住</button>
+          </form>
+          <div class="pet-long-memory-list" id="pet-long-memory-list">
+            <p class="pet-history-empty">正在读取记忆…</p>
+          </div>
+        </section>
+
         <section class="pet-memory-history" aria-labelledby="pet-history-title">
           <div class="pet-memory-section-title">
             <h3 id="pet-history-title">最近对话</h3>
