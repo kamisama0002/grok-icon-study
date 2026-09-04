@@ -12,6 +12,8 @@ const designerClientPort = String(process.env.DESIGNER_CLIENT_PORT || "19091");
 const hermesApiBase = String(process.env.HERMES_API_BASE || "").replace(/\/+$/, "");
 const hermesApiKey = String(process.env.HERMES_API_KEY || "");
 const hermesSessionId = String(process.env.HERMES_SESSION_ID || "hermes-pet");
+const hermesRequestProvider = String(process.env.HERMES_REQUEST_PROVIDER || "custom").trim();
+const hermesReasoningEffort = String(process.env.HERMES_REASONING_EFFORT || "medium").trim();
 const chatTimeoutMs = Number(process.env.HERMES_CHAT_TIMEOUT_MS || 150_000);
 const petProfilePath = path.resolve(process.env.PET_PROFILE_PATH || "/var/lib/grok-pet/profile.json");
 const hermesMemoryDir = path.resolve(process.env.HERMES_MEMORY_DIR || "/opt/hermes-pet-data/memories");
@@ -49,11 +51,16 @@ const personalityLabels = {
   steady: "冷静可靠",
   playful: "俏皮机灵",
 };
+const petModelLabels = {
+  "gpt-5.6-luna": "Luna",
+  "gpt-5.6-sol": "Sol",
+};
 const defaultPetProfile = {
   petName: "",
   userAddress: "",
   personality: "warm",
   notes: "",
+  model: "gpt-5.6-luna",
   shape: "blob",
   color: "black",
   followPointer: false,
@@ -167,11 +174,13 @@ function cleanProfileText(value, maxLength) {
 
 function normalizePetProfile(input) {
   const personality = personalityLabels[input?.personality] ? input.personality : defaultPetProfile.personality;
+  const model = petModelLabels[input?.model] ? input.model : defaultPetProfile.model;
   return {
     petName: cleanProfileText(input?.petName, 16),
     userAddress: cleanProfileText(input?.userAddress, 16),
     personality,
     notes: cleanProfileText(input?.notes, 300),
+    model,
     shape: allowedShapes.has(input?.shape) ? input.shape : defaultPetProfile.shape,
     color: allowedColors.has(input?.color) ? input.color : defaultPetProfile.color,
     followPointer: typeof input?.followPointer === "boolean" ? input.followPointer : false,
@@ -368,6 +377,9 @@ async function chatWithHermes({ message, images }) {
         "X-Hermes-Session-Id": hermesSessionId,
       },
       body: JSON.stringify({
+        model: profile.model,
+        ...(hermesRequestProvider ? { provider: hermesRequestProvider } : {}),
+        model_options: { reasoning_effort: hermesReasoningEffort },
         messages: [
           {
             role: "system",
@@ -396,6 +408,7 @@ async function chatWithHermes({ message, images }) {
       : profile;
     return {
       reply: parsed.reply,
+      model: typeof result?.model === "string" ? result.model : profile.model,
       emotion: control.expression,
       control,
       profile: updatedProfile,
@@ -546,7 +559,12 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === "GET" && url.pathname === "/api/pet/profile") {
     try {
-      json(response, 200, { ok: true, profile: await readPetProfile(), personalities: personalityLabels });
+      json(response, 200, {
+        ok: true,
+        profile: await readPetProfile(),
+        personalities: personalityLabels,
+        models: petModelLabels,
+      });
     } catch {
       json(response, 500, { ok: false, error: "暂时无法读取人格设定" });
     }
