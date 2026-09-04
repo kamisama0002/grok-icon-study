@@ -14,6 +14,7 @@ const hermesApiKey = String(process.env.HERMES_API_KEY || "");
 const hermesSessionId = String(process.env.HERMES_SESSION_ID || "hermes-pet");
 const chatTimeoutMs = Number(process.env.HERMES_CHAT_TIMEOUT_MS || 90_000);
 const petProfilePath = path.resolve(process.env.PET_PROFILE_PATH || "/var/lib/grok-pet/profile.json");
+const hermesMemoryDir = path.resolve(process.env.HERMES_MEMORY_DIR || "/opt/hermes-pet-data/memories");
 const maxImageBytes = 6 * 1024 * 1024;
 const maxChatBodyBytes = 9 * 1024 * 1024;
 const allowedImageTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
@@ -45,6 +46,11 @@ const defaultPetProfile = {
   personality: "warm",
   notes: "",
 };
+const memoryTargets = {
+  user: { file: "USER.md", limit: 1_375, label: "关于你" },
+  memory: { file: "MEMORY.md", limit: 2_200, label: "共同记忆" },
+};
+const memoryDelimiter = "\n§\n";
 
 const clients = new Set();
 const state = {
@@ -147,6 +153,67 @@ async function writePetProfile(profile) {
   await fs.writeFile(temporary, `${JSON.stringify(normalized, null, 2)}\n`, { mode: 0o600 });
   await fs.rename(temporary, petProfilePath);
   return normalized;
+}
+
+function memoryTarget(target) {
+  const config = memoryTargets[target];
+  if (!config) throw new Error("记忆类型无效");
+  return { ...config, target, path: path.join(hermesMemoryDir, config.file) };
+}
+
+async function readMemoryEntries(target) {
+  const config = memoryTarget(target);
+  try {
+    const raw = await fs.readFile(config.path, "utf8");
+    return raw.split(memoryDelimiter).map((entry) => entry.trim()).filter(Boolean);
+  } catch (error) {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  }
+}
+
+async function memorySnapshot() {
+  const groups = [];
+  for (const target of Object.keys(memoryTargets)) {
+    const config = memoryTarget(target);
+    const entries = await readMemoryEntries(target);
+    groups.push({ target, label: config.label, entries, used: entries.join(memoryDelimiter).length, limit: config.limit });
+  }
+  return groups;
+}
+
+async function writeMemoryEntries(target, entries) {
+  const config = memoryTarget(target);
+  const normalized = [...new Set(entries.map((entry) => cleanProfileText(entry, 700)).filter(Boolean))];
+  const content = normalized.join(memoryDelimiter);
+  if (content.length > config.limit) throw new Error(`${config.label}的记忆空间已经满了`);
+  await fs.mkdir(hermesMemoryDir, { recursive: true });
+  const temporary = path.join(hermesMemoryDir, `.pet_memory_${process.pid}_${Date.now()}`);
+  await fs.writeFile(temporary, content, { mode: 0o600 });
+  await fs.rename(temporary, config.path);
+  return normalized;
+}
+
+async function mutateMemory(input, action) {
+  if (chatActive) throw new Error("我还在回复消息，请稍后再整理记忆");
+  const target = cleanProfileText(input?.target, 12);
+  const entries = await readMemoryEntries(target);
+  const oldText = cleanProfileText(input?.oldText, 700);
+  const content = cleanProfileText(input?.content, 700);
+
+  if (action === "add") {
+    if (!content) throw new Error("记忆内容不能为空");
+    return writeMemoryEntries(target, [...entries, content]);
+  }
+  const index = entries.findIndex((entry) => entry === oldText);
+  if (index < 0) throw new Error("这条记忆已经不存在了，请刷新后再试");
+  if (action === "replace") {
+    if (!content) throw new Error("记忆内容不能为空");
+    entries[index] = content;
+  } else {
+    entries.splice(index, 1);
+  }
+  return writeMemoryEntries(target, entries);
 }
 
 function profilePatchFromMessage(message) {
@@ -406,6 +473,34 @@ const server = http.createServer(async (request, response) => {
       json(response, 200, { ok: true, profile });
     } catch {
       json(response, 400, { ok: false, error: "人格设定没有保存成功" });
+    }
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/pet/memories") {
+    try {
+      json(response, 200, { ok: true, groups: await memorySnapshot() });
+    } catch {
+      json(response, 500, { ok: false, error: "暂时无法读取长期记忆" });
+    }
+    return;
+  }
+
+  if (["POST", "PUT", "DELETE"].includes(request.method) && url.pathname === "/api/pet/memories") {
+    try {
+      if (!String(request.headers["content-type"] || "").startsWith("application/json")) {
+        json(response, 415, { ok: false, error: "请求格式不支持" });
+        return;
+      }
+      const input = await readJsonBody(request);
+      const action = request.method === "POST" ? "add" : request.method === "PUT" ? "replace" : "remove";
+      await mutateMemory(input, action);
+      json(response, 200, { ok: true, groups: await memorySnapshot() });
+    } catch (error) {
+      json(response, 400, {
+        ok: false,
+        error: error instanceof Error ? error.message : "记忆没有更新成功",
+      });
     }
     return;
   }

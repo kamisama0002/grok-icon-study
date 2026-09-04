@@ -5,8 +5,8 @@ Wants=network-online.target docker.service
 
 [Service]
 Type=simple
-User=nobody
-Group=nogroup
+User=10000
+Group=10000
 WorkingDirectory=/opt/grok-icon-study
 EnvironmentFile=/etc/grok-pet-bridge.env
 Environment=HOST=127.0.0.1
@@ -15,6 +15,7 @@ Environment=DESIGNER_ROOT=/opt/grok-icon-study
 Environment=PREVIEW_ROOT=/opt/grok-icon-study-preview
 Environment=DESIGNER_CLIENT_PORT=19091
 Environment=PET_PROFILE_PATH=/var/lib/grok-pet/profile.json
+Environment=HERMES_MEMORY_DIR=/opt/hermes-pet-data/memories
 ExecStart=/usr/local/bin/node /opt/grok-icon-study/preview-server.mjs
 Restart=on-failure
 RestartSec=3
@@ -30,7 +31,7 @@ RestrictSUIDSGID=true
 LockPersonality=true
 CapabilityBoundingSet=
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-ReadWritePaths=/var/lib/grok-pet
+ReadWritePaths=/var/lib/grok-pet /opt/hermes-pet-data/memories
 UMask=0077
 
 [Install]
