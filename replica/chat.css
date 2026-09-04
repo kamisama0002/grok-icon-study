@@ -673,6 +673,15 @@
     width: calc(100vw - 28px);
   }
 
+  .pet-composer textarea,
+  .pet-persona input,
+  .pet-persona select,
+  .pet-persona textarea,
+  .pet-memory-add input,
+  .pet-memory-add select {
+    font-size: 16px;
+  }
+
   .pet-bubble {
     border-radius: 20px;
     min-width: 0;
