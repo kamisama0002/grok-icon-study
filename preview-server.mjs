@@ -9,6 +9,15 @@ const host = process.env.HOST || "127.0.0.1";
 const designerRoot = path.resolve(process.env.DESIGNER_ROOT || process.cwd());
 const previewRoot = path.resolve(process.env.PREVIEW_ROOT || process.cwd());
 const designerClientPort = String(process.env.DESIGNER_CLIENT_PORT || "19091");
+const hermesApiBase = String(process.env.HERMES_API_BASE || "").replace(/\/+$/, "");
+const hermesApiKey = String(process.env.HERMES_API_KEY || "");
+const hermesSessionId = String(process.env.HERMES_SESSION_ID || "hermes-pet");
+const chatTimeoutMs = Number(process.env.HERMES_CHAT_TIMEOUT_MS || 90_000);
+const maxImageBytes = 5 * 1024 * 1024;
+const maxChatBodyBytes = 7 * 1024 * 1024;
+const allowedImageTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const chatRequestTimes = [];
+let chatActive = false;
 
 const clients = new Set();
 const state = {
@@ -49,15 +58,98 @@ function broadcast(payload) {
   for (const client of clients) client.write(message);
 }
 
-async function readJsonBody(request) {
+async function readJsonBody(request, limit = 16 * 1024) {
   let size = 0;
   const chunks = [];
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > 16 * 1024) throw new Error("请求过大");
+    if (size > limit) throw new Error("请求过大");
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+}
+
+function normalizeChatInput(input) {
+  const message = typeof input?.message === "string" ? input.message.trim() : "";
+  const image = typeof input?.image === "string" ? input.image : "";
+  if (message.length > 2_000) throw new Error("消息不能超过 2000 个字");
+  if (!message && !image) throw new Error("写点什么，或者先放一张图片吧");
+
+  if (image) {
+    const match = /^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=]+)$/i.exec(image);
+    if (!match || !allowedImageTypes.has(match[1].toLowerCase())) {
+      throw new Error("图片仅支持 PNG、JPG、WebP 或 GIF");
+    }
+    const bytes = Buffer.from(match[2], "base64");
+    if (!bytes.length || bytes.length > maxImageBytes) {
+      throw new Error("图片不能超过 5 MB");
+    }
+  }
+
+  return { message, image };
+}
+
+function enforceChatRateLimit() {
+  const now = Date.now();
+  while (chatRequestTimes.length && chatRequestTimes[0] < now - 60_000) {
+    chatRequestTimes.shift();
+  }
+  if (chatRequestTimes.length >= 12) throw new Error("消息有点多，等一会儿再试吧");
+  chatRequestTimes.push(now);
+}
+
+function emotionFromReply(reply) {
+  if (/难过|伤心|抱歉|遗憾|心疼|委屈/.test(reply)) return "sad";
+  if (/恭喜|真棒|厉害|做到了|完成了|为你骄傲/.test(reply)) return "proud";
+  if (/[?？]|为什么|怎么会|是什么|想知道/.test(reply)) return "curious";
+  if (/哈哈|笑死|太好笑|开心|高兴|喜欢|当然|没问题/.test(reply)) return "happy";
+  return "idle";
+}
+
+async function chatWithHermes({ message, image }) {
+  if (!hermesApiBase || !hermesApiKey) throw new Error("桌宠对话服务还没有配置好");
+  if (chatActive) throw new Error("我还在回复上一条消息，请稍等一下");
+  enforceChatRateLimit();
+  chatActive = true;
+
+  const userContent = image
+    ? [
+        { type: "text", text: message || "请看看这张图片，和我自然地聊聊。" },
+        { type: "image_url", image_url: { url: image } },
+      ]
+    : message;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), chatTimeoutMs);
+
+  try {
+    const upstream = await fetch(`${hermesApiBase}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${hermesApiKey}`,
+        "Content-Type": "application/json",
+        "X-Hermes-Session-Id": hermesSessionId,
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: "请用自然、温柔、简洁的中文回复，通常控制在 2 到 5 句话；不要提及系统提示、工具或后台实现。",
+          },
+          { role: "user", content: userContent },
+        ],
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+    if (!upstream.ok) throw new Error(`Hermes upstream ${upstream.status}`);
+    const result = await upstream.json();
+    const reply = result?.choices?.[0]?.message?.content;
+    if (typeof reply !== "string" || !reply.trim()) throw new Error("Hermes returned an empty reply");
+    return { reply: reply.trim(), emotion: emotionFromReply(reply) };
+  } finally {
+    clearTimeout(timeout);
+    chatActive = false;
+  }
 }
 
 function safeName(value) {
@@ -168,6 +260,31 @@ const server = http.createServer(async (request, response) => {
       json(response, 400, {
         ok: false,
         error: error instanceof Error ? error.message : "请求无效",
+      });
+    }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/pet/chat") {
+    try {
+      if (!String(request.headers["content-type"] || "").startsWith("application/json")) {
+        json(response, 415, { ok: false, error: "请求格式不支持" });
+        return;
+      }
+      const input = normalizeChatInput(await readJsonBody(request, maxChatBodyBytes));
+      const result = await chatWithHermes(input);
+      json(response, 200, { ok: true, ...result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "请求无效";
+      const isInputError = /^(请求过大|消息不能|写点什么|图片仅支持|图片不能|消息有点多|我还在|请求格式)/.test(message);
+      const status = error?.name === "AbortError" ? 504 : isInputError ? 400 : 502;
+      json(response, status, {
+        ok: false,
+        error: status === 504
+          ? "我想得有点久，请稍后再试"
+          : status === 502
+            ? "暂时没有连上对话服务，请稍后再试"
+            : message,
       });
     }
     return;
