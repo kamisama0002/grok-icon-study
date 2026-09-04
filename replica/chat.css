@@ -1,0 +1,322 @@
+.pet-chat {
+  inset: 0;
+  margin: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 20;
+}
+
+.pet-bubble {
+  align-items: flex-start;
+  background: rgba(243, 239, 230, 0.97);
+  border: 1px solid rgba(22, 21, 19, 0.18);
+  border-radius: 24px;
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.28);
+  color: #161513;
+  display: flex;
+  gap: 11px;
+  left: 50%;
+  max-width: min(430px, calc(100vw - 32px));
+  min-width: min(320px, calc(100vw - 32px));
+  padding: 15px 18px 16px;
+  pointer-events: auto;
+  position: absolute;
+  top: max(18px, calc(50% - 305px));
+  transform: translateX(-50%);
+}
+
+.pet-bubble::after {
+  background: inherit;
+  bottom: -8px;
+  content: "";
+  height: 17px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%) rotate(45deg);
+  width: 17px;
+}
+
+.pet-bubble__status {
+  background: #28a883;
+  border: 3px solid rgba(40, 168, 131, 0.18);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #28a883;
+  flex: 0 0 9px;
+  height: 9px;
+  margin-top: 7px;
+  width: 9px;
+}
+
+.pet-bubble[data-state="thinking"] .pet-bubble__status {
+  animation: pet-status-pulse 900ms ease-in-out infinite alternate;
+  background: #cc8a24;
+  box-shadow: 0 0 0 1px #cc8a24;
+}
+
+.pet-bubble[data-state="error"] .pet-bubble__status {
+  background: #bd4949;
+  box-shadow: 0 0 0 1px #bd4949;
+}
+
+.pet-bubble__copy {
+  min-width: 0;
+}
+
+.pet-bubble__copy small {
+  color: #756d61;
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.pet-bubble__copy p {
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+  max-height: 132px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.pet-user-echo {
+  background: rgba(42, 40, 35, 0.94);
+  border: 1px solid rgba(243, 239, 230, 0.16);
+  border-radius: 16px;
+  color: #ece7dc;
+  font-size: 12px;
+  left: 50%;
+  max-width: min(360px, calc(100vw - 36px));
+  overflow: hidden;
+  padding: 9px 12px;
+  pointer-events: auto;
+  position: absolute;
+  top: max(112px, calc(50% - 214px));
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.pet-user-echo[hidden] {
+  display: none;
+}
+
+.pet-composer {
+  background: rgba(243, 239, 230, 0.97);
+  border: 1px solid rgba(22, 21, 19, 0.2);
+  border-radius: 24px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
+  color: #161513;
+  left: 50%;
+  max-width: min(620px, calc(100vw - 32px));
+  padding: 9px;
+  pointer-events: auto;
+  position: absolute;
+  transform: translateX(-50%);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  width: 100%;
+}
+
+.pet-composer[data-drag="true"] {
+  border-color: #28a883;
+  box-shadow: 0 0 0 4px rgba(40, 168, 131, 0.18), 0 20px 60px rgba(0, 0, 0, 0.36);
+}
+
+.pet-composer__row {
+  align-items: flex-end;
+  display: flex;
+  gap: 8px;
+}
+
+.pet-composer__attach,
+.pet-composer__send,
+.pet-image-preview__remove {
+  align-items: center;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.pet-composer__attach {
+  background: #ded8cc;
+  border-radius: 50%;
+  color: #161513;
+  flex: 0 0 44px;
+  font-size: 20px;
+  padding: 0;
+  width: 44px;
+}
+
+.pet-composer__attach:hover,
+.pet-composer__attach:focus-visible {
+  background: #cec6b7;
+  outline: 2px solid #161513;
+  outline-offset: 2px;
+}
+
+.pet-composer textarea {
+  background: transparent;
+  border: 0;
+  color: #161513;
+  flex: 1;
+  font: inherit;
+  line-height: 1.5;
+  max-height: 112px;
+  min-height: 44px;
+  min-width: 0;
+  outline: 0;
+  padding: 11px 5px 9px;
+  resize: none;
+}
+
+.pet-composer textarea::placeholder {
+  color: #7a7267;
+}
+
+.pet-composer__send {
+  background: #161513;
+  border-radius: 16px;
+  color: #f3efe6;
+  flex: 0 0 auto;
+  font-weight: 700;
+  padding: 0 17px;
+}
+
+.pet-composer__send:hover,
+.pet-composer__send:focus-visible {
+  background: #37332d;
+  outline: 2px solid #161513;
+  outline-offset: 2px;
+}
+
+.pet-composer__send:disabled,
+.pet-composer__attach:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.pet-composer__hint {
+  color: #7a7267;
+  display: block;
+  font-size: 10px;
+  line-height: 1.4;
+  margin: 4px 52px 0;
+}
+
+.pet-image-preview {
+  align-items: center;
+  background: #e7e1d6;
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 58px minmax(0, 1fr) 36px;
+  margin-bottom: 8px;
+  padding: 7px;
+}
+
+.pet-image-preview[hidden] {
+  display: none;
+}
+
+.pet-image-preview img {
+  border-radius: 11px;
+  height: 58px;
+  object-fit: cover;
+  width: 58px;
+}
+
+.pet-image-preview__meta {
+  min-width: 0;
+}
+
+.pet-image-preview__meta strong,
+.pet-image-preview__meta small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-image-preview__meta strong {
+  font-size: 12px;
+}
+
+.pet-image-preview__meta small {
+  color: #756d61;
+  font-size: 10px;
+  margin-top: 3px;
+}
+
+.pet-image-preview__remove {
+  background: transparent;
+  border-radius: 50%;
+  color: #514c44;
+  min-height: 36px;
+  padding: 0;
+  width: 36px;
+}
+
+.pet-image-preview__remove:hover,
+.pet-image-preview__remove:focus-visible {
+  background: #d3ccbf;
+  outline: 2px solid #514c44;
+}
+
+.pet-visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@keyframes pet-status-pulse {
+  from { opacity: 0.4; transform: scale(0.78); }
+  to { opacity: 1; transform: scale(1.08); }
+}
+
+@media (max-height: 700px) {
+  .disk { width: min(44vh, 280px); }
+  .pet-bubble { top: 14px; }
+  .pet-user-echo { top: 100px; }
+  .pet-composer { bottom: 12px; }
+}
+
+@media (max-width: 520px) {
+  .pet-bubble {
+    border-radius: 20px;
+    min-width: 0;
+    padding: 13px 15px;
+    width: calc(100vw - 28px);
+  }
+
+  .pet-composer {
+    border-radius: 20px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+  }
+
+  .pet-composer__hint {
+    margin-inline: 4px;
+    padding: 0 4px 3px;
+  }
+
+  .pet-composer__send {
+    padding-inline: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-bubble__status {
+    animation: none !important;
+  }
+}
+
