@@ -298,7 +298,7 @@
     color: "black",
     scheme: "light",
     loginWrap: true,
-    pose: { ...GROK_META.poseHome },
+    pose: { turn: 0, tilt: 0, roll: 0 },
   };
   const bot = new GrokCharacter(document.getElementById("bot"), {
     ...shared,
