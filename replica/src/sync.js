@@ -8,8 +8,10 @@
   const apiRoot = location.pathname.startsWith("/experiments/icon-lab")
     ? "/experiments/icon-lab/api"
     : "/api";
+  const desktopMode = document.documentElement.dataset.petDesktop === "true";
 
   function post(payload) {
+    if (desktopMode) return Promise.resolve(undefined);
     return fetch(`${apiRoot}/pet-state`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -57,16 +59,18 @@
     }
   }
 
-  const events = new EventSource(`${apiRoot}/pet-events`);
-  events.onmessage = (event) => {
-    try {
-      const payload = JSON.parse(event.data);
-      if (payload.type === "state") applyState(payload.state);
-      else if (payload.type === "action" && payload.source !== clientId) applyAction(payload.action);
-    } catch {
-      // Ignore a malformed preview event and keep the stream alive.
-    }
-  };
+  if (!desktopMode) {
+    const events = new EventSource(`${apiRoot}/pet-events`);
+    events.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "state") applyState(payload.state);
+        else if (payload.type === "action" && payload.source !== clientId) applyAction(payload.action);
+      } catch {
+        // Ignore a malformed preview event and keep the stream alive.
+      }
+    };
+  }
 
   g.PET_SYNC = {
     register(nextBots) {

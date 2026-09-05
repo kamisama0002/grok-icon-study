@@ -1,0 +1,42 @@
+{
+  "name": "mili-pet-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A transparent spherical desktop pet powered by local Hermes.",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir --config.electronDist=node_modules/electron/dist --config.directories.output=release-local",
+    "dist": "electron-builder --win portable nsis --config.electronDist=node_modules/electron/dist"
+  },
+  "devDependencies": {
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "org.haohanxingchen.milipet",
+    "productName": "mili 球形桌宠",
+    "asar": true,
+    "files": [
+      "main.cjs",
+      "preload.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": "../replica",
+        "to": "replica"
+      },
+      {
+        "from": "../assets",
+        "to": "assets"
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": ["portable", "nsis"],
+      "artifactName": "mili-pet-${version}-${arch}.${ext}"
+    }
+  }
+}

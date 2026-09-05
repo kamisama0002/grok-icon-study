@@ -815,3 +815,82 @@
     animation: none !important;
   }
 }
+
+/* Standalone desktop pet: the Electron window is transparent and only the ball
+   is visible until the user clicks it. */
+html[data-pet-desktop],
+html[data-pet-desktop] body {
+  background: transparent !important;
+}
+
+html[data-pet-desktop] body {
+  overflow: hidden;
+  user-select: none;
+}
+
+html[data-pet-desktop] main {
+  height: 100vh;
+  min-height: 100vh;
+  padding: 0;
+}
+
+html[data-pet-desktop] .disk {
+  cursor: grab;
+  width: 300px;
+  -webkit-app-region: no-drag;
+}
+
+html[data-pet-desktop] .disk:active {
+  cursor: grabbing;
+}
+
+html[data-pet-desktop] .pet-dialog-stack,
+html[data-pet-desktop] .pet-composer {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+html[data-pet-desktop][data-pet-chat-open="true"] .pet-dialog-stack,
+html[data-pet-desktop][data-pet-chat-open="true"] .pet-composer {
+  opacity: 1;
+  visibility: visible;
+}
+
+html[data-pet-desktop] .pet-dialog-stack {
+  max-width: 390px;
+  top: 18px;
+}
+
+html[data-pet-desktop] .pet-composer {
+  bottom: 16px;
+  max-width: 390px;
+}
+
+html[data-pet-desktop] .pet-memory-trigger {
+  display: none;
+}
+
+html[data-pet-desktop][data-pet-chat-open="true"] .pet-memory-trigger {
+  display: inline-flex;
+}
+
+html[data-pet-desktop] .pet-model-picker {
+  display: none;
+}
+
+html[data-pet-desktop] .pet-memory-drawer {
+  max-width: 390px;
+}
+
+html[data-pet-desktop] .pet-user-echo {
+  max-width: 350px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-pet-desktop] .pet-dialog-stack,
+  html[data-pet-desktop] .pet-composer {
+    transition: none;
+  }
+}

@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=overlays-content" />
 <script>
+  if (window.petDesktop?.isDesktop || new URLSearchParams(location.search).get("desktop") === "1") {
+    document.documentElement.dataset.petDesktop = "true";
+  }
   document.documentElement.style.setProperty("--pet-stable-height", `${window.innerHeight}px`);
 </script>
 <link rel="icon" href="data:," />
@@ -536,5 +539,6 @@
   document.getElementById("act-burst").onclick = () => PET_SYNC.action("burst");
 </script>
 <script src="src/chat.js"></script>
+<script src="src/desktop-mode.js"></script>
 </body>
 </html>
