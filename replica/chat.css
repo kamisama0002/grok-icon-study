@@ -831,13 +831,70 @@ html[data-pet-desktop] body {
 html[data-pet-desktop] main {
   height: 100vh;
   min-height: 100vh;
+  overflow: visible;
   padding: 0;
 }
 
 html[data-pet-desktop] .disk {
+  animation: pet-desktop-float 3.8s ease-in-out infinite alternate;
+  background:
+    radial-gradient(circle at 29% 21%, rgba(255, 255, 255, 0.98) 0 4%, rgba(255, 255, 255, 0.65) 8%, transparent 23%),
+    radial-gradient(circle at 38% 32%, #fffdf8 0%, #f4eee3 39%, #d8ccbc 73%, #a99682 100%);
   cursor: grab;
+  isolation: isolate;
+  overflow: visible;
   width: 300px;
   -webkit-app-region: no-drag;
+}
+
+html[data-pet-desktop] .disk::before {
+  background:
+    radial-gradient(ellipse at 31% 17%, rgba(255, 255, 255, 0.9), transparent 24%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.34), transparent 42% 66%, rgba(64, 43, 24, 0.2));
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+html[data-pet-desktop] .disk::after {
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: inherit;
+  box-shadow:
+    inset 9px 10px 19px rgba(255, 255, 255, 0.45),
+    inset -16px -22px 29px rgba(67, 48, 29, 0.2);
+  content: "";
+  inset: 2px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+html[data-pet-desktop] .disk > svg {
+  filter: drop-shadow(0 13px 12px rgba(26, 20, 14, 0.2));
+  position: relative;
+  z-index: 2;
+}
+
+html[data-pet-desktop] .pet-sphere-face-gloss {
+  background: radial-gradient(ellipse at 42% 42%, rgba(255, 255, 255, 0.17), transparent 72%);
+  border-radius: 50%;
+  filter: blur(1px);
+  height: 42px;
+  left: 29%;
+  opacity: 0.7;
+  pointer-events: none;
+  position: absolute;
+  top: 23%;
+  width: 92px;
+  z-index: 4;
+}
+
+@keyframes pet-desktop-float {
+  from { transform: translateY(-4px); }
+  to { transform: translateY(5px); }
 }
 
 html[data-pet-desktop] .disk:active {
@@ -889,6 +946,10 @@ html[data-pet-desktop] .pet-user-echo {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html[data-pet-desktop] .disk {
+    animation: none;
+  }
+
   html[data-pet-desktop] .pet-dialog-stack,
   html[data-pet-desktop] .pet-composer {
     transition: none;
